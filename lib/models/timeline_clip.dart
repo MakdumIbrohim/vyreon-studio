@@ -121,6 +121,11 @@ class TimelineClip {
   final TransitionType transition;
   final int transitionDurationMs;
   final List<Keyframe> keyframes;
+  final bool isChromaKeyEnabled;
+  final int chromaKeyColor;
+  final double chromaThreshold;
+  final double chromaSmoothness;
+  final bool chromaShowMask;
 
   const TimelineClip({
     required this.id,
@@ -151,6 +156,11 @@ class TimelineClip {
     this.transition = TransitionType.none,
     this.transitionDurationMs = 1000,
     this.keyframes = const [],
+    this.isChromaKeyEnabled = false,
+    this.chromaKeyColor = 0xFF00FF00,
+    this.chromaThreshold = 0.35,
+    this.chromaSmoothness = 0.1,
+    this.chromaShowMask = false,
   });
 
   int get endMs => startMs + durationMs;
@@ -248,6 +258,11 @@ class TimelineClip {
     TransitionType? transition,
     int? transitionDurationMs,
     List<Keyframe>? keyframes,
+    bool? isChromaKeyEnabled,
+    int? chromaKeyColor,
+    double? chromaThreshold,
+    double? chromaSmoothness,
+    bool? chromaShowMask,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -276,8 +291,14 @@ class TimelineClip {
       isPrimary: isPrimary ?? this.isPrimary,
       trackIndex: trackIndex ?? this.trackIndex,
       transition: transition ?? this.transition,
-      transitionDurationMs: transitionDurationMs ?? this.transitionDurationMs,
+      transitionDurationMs:
+          transitionDurationMs ?? this.transitionDurationMs,
       keyframes: keyframes ?? this.keyframes,
+      isChromaKeyEnabled: isChromaKeyEnabled ?? this.isChromaKeyEnabled,
+      chromaKeyColor: chromaKeyColor ?? this.chromaKeyColor,
+      chromaThreshold: chromaThreshold ?? this.chromaThreshold,
+      chromaSmoothness: chromaSmoothness ?? this.chromaSmoothness,
+      chromaShowMask: chromaShowMask ?? this.chromaShowMask,
     );
   }
 
@@ -310,6 +331,11 @@ class TimelineClip {
     'transition': transition.name,
     'transitionDurationMs': transitionDurationMs,
     'keyframes': keyframes.map((k) => k.toJson()).toList(),
+    'isChromaKeyEnabled': isChromaKeyEnabled,
+    'chromaKeyColor': chromaKeyColor,
+    'chromaThreshold': chromaThreshold,
+    'chromaSmoothness': chromaSmoothness,
+    'chromaShowMask': chromaShowMask,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -358,6 +384,13 @@ class TimelineClip {
               ?.map((k) => Keyframe.fromJson(k as Map<String, dynamic>))
               .toList() ??
           const [],
+      isChromaKeyEnabled: json['isChromaKeyEnabled'] as bool? ?? false,
+      chromaKeyColor: (json['chromaKeyColor'] as num?)?.toInt() ?? 0xFF00FF00,
+      chromaThreshold:
+          (json['chromaThreshold'] as num?)?.toDouble() ?? 0.35,
+      chromaSmoothness:
+          (json['chromaSmoothness'] as num?)?.toDouble() ?? 0.1,
+      chromaShowMask: json['chromaShowMask'] as bool? ?? false,
     );
   }
 }

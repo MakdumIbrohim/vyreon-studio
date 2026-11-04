@@ -67,6 +67,39 @@ class PreviewPlayer extends StatelessWidget {
     }
   }
 
+  ColorFilter _getChromaKeyFilter(int keyColor, double threshold, bool showMask) {
+    if (showMask) {
+      // Silhouette mask: White for foreground, black for key
+      return const ColorFilter.matrix(<double>[
+        2.0, -2.0, 2.0, 0, 0,
+        2.0, -2.0, 2.0, 0, 0,
+        2.0, -2.0, 2.0, 0, 0,
+        0, 0, 0, 1, 0,
+      ]);
+    }
+
+    final isGreen = ((keyColor >> 8) & 0xFF) > ((keyColor >> 16) & 0xFF) &&
+        ((keyColor >> 8) & 0xFF) > (keyColor & 0xFF);
+
+    if (isGreen) {
+      // Chroma key Green: suppress green spill and attenuate alpha for green
+      return const ColorFilter.matrix(<double>[
+        1.0, 0.0, 0.0, 0, 0,
+        0.0, 0.15, 0.0, 0, 0,
+        0.0, 0.0, 1.0, 0, 0,
+        0.6, -1.2, 0.6, 1, 0,
+      ]);
+    } else {
+      // Chroma key Blue: suppress blue spill and attenuate alpha for blue
+      return const ColorFilter.matrix(<double>[
+        1.0, 0.0, 0.0, 0, 0,
+        0.0, 1.0, 0.0, 0, 0,
+        0.0, 0.0, 0.15, 0, 0,
+        0.6, 0.6, -1.2, 1, 0,
+      ]);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -450,7 +483,14 @@ class PreviewPlayer extends StatelessWidget {
       );
     }
 
-    if (filter != null) {
+    if (layer.isChromaKeyEnabled) {
+      final chromaFilter = _getChromaKeyFilter(
+        layer.chromaKeyColor,
+        layer.chromaThreshold,
+        layer.chromaShowMask,
+      );
+      layerWidget = ColorFiltered(colorFilter: chromaFilter, child: layerWidget);
+    } else if (filter != null) {
       layerWidget = ColorFiltered(colorFilter: filter, child: layerWidget);
     }
 
