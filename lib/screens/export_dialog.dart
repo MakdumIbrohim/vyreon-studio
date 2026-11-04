@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/project.dart';
+import '../services/video_render_service.dart';
 import '../theme/app_theme.dart';
 
 class ExportDialog extends StatefulWidget {
@@ -19,39 +20,53 @@ class _ExportDialogState extends State<ExportDialog> {
   bool _isExporting = false;
   double _exportProgress = 0.0;
   bool _exportCompleted = false;
-  Timer? _exportTimer;
+  String _exportedPath = '';
+  int _exportedSize = 0;
+  String? _exportError;
 
   final List<String> _resolutions = ['HD 720p', 'FHD 1080p', '4K 2160p'];
   final List<int> _frameRates = [24, 30, 60];
 
   double get _estimatedFileSizeMb {
     final durationSeconds = widget.project.totalDurationMs / 1000.0;
-    // Megabytes = (Mbps * duration) / 8
     return (_bitrateMbps * durationSeconds) / 8.0;
   }
 
-  void _startExport() {
+  Future<void> _startExport() async {
     setState(() {
       _isExporting = true;
       _exportProgress = 0.0;
+      _exportError = null;
     });
 
-    _exportTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    final result = await VideoRenderService.instance.renderProject(
+      project: widget.project,
+      resolution: _selectedResolution,
+      fps: _selectedFps,
+      bitrateMbps: _bitrateMbps,
+      onProgress: (p) {
+        if (mounted) {
+          setState(() => _exportProgress = p);
+        }
+      },
+    );
+
+    if (mounted) {
       setState(() {
-        _exportProgress += 0.02;
-        if (_exportProgress >= 1.0) {
-          _exportProgress = 1.0;
-          _isExporting = false;
+        _isExporting = false;
+        if (result.success) {
           _exportCompleted = true;
-          _exportTimer?.cancel();
+          _exportedPath = result.outputPath;
+          _exportedSize = result.fileSize;
+        } else {
+          _exportError = result.error ?? 'Export failed';
         }
       });
-    });
+    }
   }
 
   @override
   void dispose() {
-    _exportTimer?.cancel();
     super.dispose();
   }
 
@@ -218,6 +233,22 @@ class _ExportDialogState extends State<ExportDialog> {
           ),
         ),
 
+        if (_exportError != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.redAccent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              _exportError!,
+              style: const TextStyle(fontSize: 11, color: Colors.redAccent),
+            ),
+          ),
+        ],
+
         const SizedBox(height: 18),
 
         // Save as Video Button
@@ -278,7 +309,6 @@ class _ExportDialogState extends State<ExportDialog> {
         const SizedBox(height: 20),
         TextButton(
           onPressed: () {
-            _exportTimer?.cancel();
             setState(() => _isExporting = false);
           },
           child: const Text('Cancel Export',
@@ -289,6 +319,11 @@ class _ExportDialogState extends State<ExportDialog> {
   }
 
   Widget _buildCompletedView() {
+    final sizeKb = (_exportedSize / 1024).round();
+    final sizeFormatted = sizeKb > 1024
+        ? '${(sizeKb / 1024).toStringAsFixed(1)} MB'
+        : '$sizeKb KB';
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -304,9 +339,21 @@ class _ExportDialogState extends State<ExportDialog> {
         ),
         const SizedBox(height: 6),
         Text(
-          '${widget.project.name}.mp4 is ready in your gallery.',
+          'Rendered at $_selectedResolution • $sizeFormatted',
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceVariant,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: SelectableText(
+            _exportedPath,
+            style: const TextStyle(fontSize: 10, fontFamily: 'monospace', color: AppTheme.textMuted),
+          ),
         ),
         const SizedBox(height: 20),
         ElevatedButton(
