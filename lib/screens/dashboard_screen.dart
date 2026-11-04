@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../models/project.dart';
 import '../services/project_storage_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/dashboard/create_project_banner.dart';
+import '../widgets/dashboard/project_card.dart';
 import 'create_project_dialog.dart';
 import 'editor_screen.dart';
 
@@ -133,13 +135,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
-  String _formatDuration(int ms) {
-    final sec = ms ~/ 1000;
-    final m = sec ~/ 60;
-    final s = sec % 60;
-    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final filtered = _projects.where((p) {
@@ -185,7 +180,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppTheme.primary))
           : RefreshIndicator(
               onRefresh: _loadProjects,
               color: AppTheme.primary,
@@ -193,67 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 slivers: [
                   // Hero "Create New Project" Banner
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: InkWell(
-                        onTap: _createNewProject,
-                        borderRadius: BorderRadius.circular(14),
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFE53935), Color(0xFFFF5252)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primary.withValues(alpha: 0.35),
-                                blurRadius: 14,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: const Row(
-                            children: [
-                              CircleAvatar(
-                                radius: 24,
-                                backgroundColor: Colors.white24,
-                                child: Icon(Icons.add,
-                                    size: 28, color: Colors.white),
-                              ),
-                              SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Create New Project',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                    SizedBox(height: 4),
-                                    Text(
-                                      'Select aspect ratio (16:9, 9:16, 1:1) and build multi-track video',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.white70,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Icon(Icons.arrow_forward_ios,
-                                  size: 16, color: Colors.white70),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    child: CreateProjectBanner(onTap: _createNewProject),
                   ),
 
                   // Search bar & Project count header
@@ -311,7 +247,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Icon(Icons.video_library_outlined,
                                 size: 48,
-                                color: AppTheme.textMuted.withValues(alpha: 0.5)),
+                                color:
+                                    AppTheme.textMuted.withValues(alpha: 0.5)),
                             const SizedBox(height: 10),
                             const Text(
                               'No projects found',
@@ -336,7 +273,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final project = filtered[index];
-                            return _buildProjectCard(project);
+                            return ProjectCard(
+                              project: project,
+                              onOpen: () => _openProject(project),
+                              onDuplicate: () => _duplicateProject(project),
+                              onRename: () => _renameProject(project),
+                              onDelete: () => _deleteProject(project),
+                            );
                           },
                           childCount: filtered.length,
                         ),
@@ -349,190 +292,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildProjectCard(Project project) {
-    final firstClip =
-        project.clips.isNotEmpty ? project.clips.first : null;
-    final thumbColor = firstClip != null ? firstClip.color : AppTheme.surfaceVariant;
-
-    return InkWell(
-      onTap: () => _openProject(project),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppTheme.cardColor,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppTheme.divider),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Thumbnail Area
-            Expanded(
-              flex: 5,
-              child: Container(
-                color: thumbColor,
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Icon(
-                        project.aspectRatio.icon,
-                        size: 32,
-                        color: Colors.white.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    // Aspect ratio tag (Top Left)
-                    Positioned(
-                      top: 6,
-                      left: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          project.aspectRatio.label,
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                    // Duration badge (Bottom Right)
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _formatDuration(project.totalDurationMs),
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Info Area
-            Expanded(
-              flex: 4,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 6, 4, 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            project.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${project.clips.length} clips • ${project.modifiedAt.month}/${project.modifiedAt.day}',
-                            style: const TextStyle(
-                              fontSize: 10,
-                              color: AppTheme.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // Context Menu
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert,
-                          size: 16, color: AppTheme.textMuted),
-                      color: AppTheme.surface,
-                      onSelected: (action) {
-                        if (action == 'open') {
-                          _openProject(project);
-                        } else if (action == 'duplicate') {
-                          _duplicateProject(project);
-                        } else if (action == 'rename') {
-                          _renameProject(project);
-                        } else if (action == 'delete') {
-                          _deleteProject(project);
-                        }
-                      },
-                      itemBuilder: (ctx) => [
-                        const PopupMenuItem(
-                          value: 'open',
-                          child: Row(
-                            children: [
-                              Icon(Icons.edit, size: 16),
-                              SizedBox(width: 8),
-                              Text('Edit Project'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'duplicate',
-                          child: Row(
-                            children: [
-                              Icon(Icons.copy, size: 16),
-                              SizedBox(width: 8),
-                              Text('Duplicate'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'rename',
-                          child: Row(
-                            children: [
-                              Icon(Icons.drive_file_rename_outline, size: 16),
-                              SizedBox(width: 8),
-                              Text('Rename'),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete,
-                                  size: 16, color: Colors.redAccent),
-                              SizedBox(width: 8),
-                              Text('Delete',
-                                  style: TextStyle(color: Colors.redAccent)),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

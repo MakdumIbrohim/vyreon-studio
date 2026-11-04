@@ -1,96 +1,11 @@
 import 'package:flutter/material.dart';
+import 'clip_types.dart';
+import 'keyframe.dart';
+import 'transition_type.dart';
 
-enum ClipType {
-  video(Icons.videocam, 'Video'),
-  image(Icons.image, 'Image'),
-  color(Icons.palette, 'Solid Color'),
-  text(Icons.title, 'Text'),
-  audio(Icons.audiotrack, 'Audio'),
-  sticker(Icons.auto_awesome, 'Graphic');
-
-  final IconData icon;
-  final String label;
-  const ClipType(this.icon, this.label);
-}
-
-enum ColorFilterPreset {
-  none('Normal'),
-  warm('Warm'),
-  cool('Cool'),
-  vivid('Vivid'),
-  mono('Monochrome'),
-  vintage('Vintage'),
-  cyberpunk('Cyberpunk');
-
-  final String label;
-  const ColorFilterPreset(this.label);
-}
-
-enum TransitionType {
-  none('None / Cut', Icons.block),
-  fade('Crossfade', Icons.blur_linear),
-  wipeLeft('Wipe', Icons.swipe_left),
-  slideUp('Slide Up', Icons.arrow_upward),
-  zoom('Zoom Dissolve', Icons.zoom_in);
-
-  final String label;
-  final IconData icon;
-  const TransitionType(this.label, this.icon);
-}
-
-class Keyframe {
-  final int timeMs; // relative time inside clip (0 to durationMs)
-  final double scale;
-  final double rotation;
-  final double offsetX;
-  final double offsetY;
-  final double opacity;
-
-  const Keyframe({
-    required this.timeMs,
-    this.scale = 1.0,
-    this.rotation = 0.0,
-    this.offsetX = 0.0,
-    this.offsetY = 0.0,
-    this.opacity = 1.0,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'timeMs': timeMs,
-    'scale': scale,
-    'rotation': rotation,
-    'offsetX': offsetX,
-    'offsetY': offsetY,
-    'opacity': opacity,
-  };
-
-  factory Keyframe.fromJson(Map<String, dynamic> json) {
-    return Keyframe(
-      timeMs: (json['timeMs'] as num).toInt(),
-      scale: (json['scale'] as num?)?.toDouble() ?? 1.0,
-      rotation: (json['rotation'] as num?)?.toDouble() ?? 0.0,
-      offsetX: (json['offsetX'] as num?)?.toDouble() ?? 0.0,
-      offsetY: (json['offsetY'] as num?)?.toDouble() ?? 0.0,
-      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
-    );
-  }
-}
-
-class InterpolatedTransform {
-  final double scale;
-  final double rotation;
-  final double offsetX;
-  final double offsetY;
-  final double opacity;
-
-  const InterpolatedTransform({
-    required this.scale,
-    required this.rotation,
-    required this.offsetX,
-    required this.offsetY,
-    required this.opacity,
-  });
-}
+export 'clip_types.dart';
+export 'keyframe.dart';
+export 'transition_type.dart';
 
 class TimelineClip {
   final String id;

@@ -1,0 +1,181 @@
+import 'dart:math';
+import 'package:flutter/material.dart';
+import '../../models/timeline_clip.dart';
+import '../../state/editor_controller.dart';
+import '../../theme/app_theme.dart';
+import 'timeline_painters.dart';
+
+class TimelineClipWidget extends StatelessWidget {
+  final TimelineClip clip;
+  final double scale;
+  final double height;
+  final bool isAudio;
+  final EditorController controller;
+
+  const TimelineClipWidget({
+    super.key,
+    required this.clip,
+    required this.scale,
+    required this.height,
+    this.isAudio = false,
+    required this.controller,
+  });
+
+  double _msToPx(int ms, double scale) => (ms / 1000.0) * scale;
+
+  @override
+  Widget build(BuildContext context) {
+    final isSelected = controller.selectedClipId == clip.id;
+    final left = _msToPx(clip.startMs, scale);
+    final width = max(24.0, _msToPx(clip.durationMs, scale));
+
+    return Positioned(
+      left: left,
+      top: 3,
+      width: width,
+      height: height,
+      child: GestureDetector(
+        onTap: () => controller.selectClip(clip.id),
+        child: Container(
+          decoration: BoxDecoration(
+            color: isAudio
+                ? AppTheme.timelineAudioClip
+                : (clip.isPrimary
+                    ? AppTheme.timelinePrimaryClip
+                    : (clip.type == ClipType.text
+                        ? AppTheme.timelineTextClip
+                        : AppTheme.timelineSecondaryClip)),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFFFFD700)
+                  : Colors.white.withValues(alpha: 0.15),
+              width: isSelected ? 2.5 : 1.0,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFFFFD700).withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      spreadRadius: 1,
+                    ),
+                  ]
+                : null,
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Waveform pattern for audio
+              if (isAudio)
+                CustomPaint(
+                  painter: AudioWaveformPainter(),
+                ),
+
+              // Keyframe Markers
+              for (final k in clip.keyframes)
+                Positioned(
+                  left: (_msToPx(k.timeMs, scale) - 4).clamp(0.0, width - 8),
+                  bottom: 3,
+                  child: Transform.rotate(
+                    angle: pi / 4,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD700),
+                        border: Border.all(color: Colors.black87, width: 0.8),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black45,
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Clip Content Info
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      clip.type.icon,
+                      size: 13,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        clip.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    if (width > 60)
+                      Text(
+                        '${(clip.durationMs / 1000).toStringAsFixed(1)}s',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontFamily: 'monospace',
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Trim Handles when selected
+              if (isSelected) ...[
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 7,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFD700),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(4),
+                        bottomLeft: Radius.circular(4),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.drag_indicator,
+                          size: 9, color: Colors.black87),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 7,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFD700),
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(4),
+                        bottomRight: Radius.circular(4),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Icon(Icons.drag_indicator,
+                          size: 9, color: Colors.black87),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

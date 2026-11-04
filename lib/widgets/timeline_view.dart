@@ -4,6 +4,9 @@ import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import 'time_ruler.dart';
+import 'timeline/timeline_clip_widget.dart';
+import 'timeline/timeline_painters.dart';
+import 'timeline/transition_selector_dialog.dart';
 
 class TimelineView extends StatefulWidget {
   final EditorController controller;
@@ -56,82 +59,9 @@ class _TimelineViewState extends State<TimelineView> {
   int _pxToMs(double px, double scale) => ((px / scale) * 1000).round();
 
   Future<void> _editTransition(TimelineClip nextClip) async {
-    TransitionType selected = nextClip.transition;
-    double durationSec = nextClip.transitionDurationMs / 1000.0;
-
     final updated = await showDialog<TimelineClip>(
       context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: AppTheme.surface,
-              title: const Row(
-                children: [
-                  Icon(Icons.auto_awesome, color: AppTheme.primary, size: 20),
-                  SizedBox(width: 8),
-                  Text('Clip Transition', style: TextStyle(fontSize: 16)),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Select Transition Effect:',
-                      style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: TransitionType.values.map((t) {
-                      final isSel = selected == t;
-                      return ChoiceChip(
-                        avatar: Icon(t.icon, size: 16, color: isSel ? Colors.white : AppTheme.textSecondary),
-                        label: Text(t.label),
-                        selected: isSel,
-                        selectedColor: AppTheme.primary,
-                        backgroundColor: AppTheme.surfaceVariant,
-                        onSelected: (_) => setDialogState(() => selected = t),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Duration:', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                      Text('${durationSec.toStringAsFixed(1)}s', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                    ],
-                  ),
-                  Slider(
-                    value: durationSec,
-                    min: 0.5,
-                    max: 3.0,
-                    onChanged: (val) => setDialogState(() => durationSec = val),
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-                  onPressed: () {
-                    final newClip = nextClip.copyWith(
-                      transition: selected,
-                      transitionDurationMs: (durationSec * 1000).round(),
-                    );
-                    Navigator.of(ctx).pop(newClip);
-                  },
-                  child: const Text('Apply', style: TextStyle(color: Colors.white)),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (ctx) => TransitionSelectorDialog(clip: nextClip),
     );
 
     if (updated != null) {
@@ -291,7 +221,6 @@ class _TimelineViewState extends State<TimelineView> {
                                   totalWidth: totalWidth,
                                   trackLabel: 'LAYERS',
                                   trackHeight: 38,
-                                  color: AppTheme.timelineSecondaryClip,
                                 ),
 
                                 const Divider(
@@ -304,7 +233,6 @@ class _TimelineViewState extends State<TimelineView> {
                                   totalWidth: totalWidth,
                                   trackLabel: 'TEXT',
                                   trackHeight: 34,
-                                  color: AppTheme.timelineTextClip,
                                 ),
 
                                 const Divider(
@@ -328,18 +256,16 @@ class _TimelineViewState extends State<TimelineView> {
                                 child: Stack(
                                   clipBehavior: Clip.none,
                                   children: [
-                                    // Vertical Line
                                     Container(
                                       width: 2,
                                       color: AppTheme.playhead,
                                     ),
-                                    // Pointer Head
                                     Positioned(
                                       top: 0,
                                       left: -5,
                                       child: CustomPaint(
                                         size: const Size(12, 10),
-                                        painter: _PlayheadPointerPainter(),
+                                        painter: PlayheadPointerPainter(),
                                       ),
                                     ),
                                   ],
@@ -371,7 +297,6 @@ class _TimelineViewState extends State<TimelineView> {
       color: AppTheme.timelineTrack,
       child: Stack(
         children: [
-          // Background subtle track label
           Positioned(
             left: 8,
             top: 2,
@@ -384,14 +309,13 @@ class _TimelineViewState extends State<TimelineView> {
               ),
             ),
           ),
-          // Primary Clips
           for (int i = 0; i < clips.length; i++) ...[
-            _buildClipWidget(
+            TimelineClipWidget(
               clip: clips[i],
               scale: scale,
               height: 52,
+              controller: widget.controller,
             ),
-            // Transition indicator between primary clips
             if (i < clips.length - 1)
               Positioned(
                 left: _msToPx(clips[i].endMs, scale) - 9,
@@ -437,7 +361,6 @@ class _TimelineViewState extends State<TimelineView> {
     required double totalWidth,
     required String trackLabel,
     required double trackHeight,
-    required Color color,
   }) {
     return Container(
       height: trackHeight,
@@ -458,10 +381,11 @@ class _TimelineViewState extends State<TimelineView> {
             ),
           ),
           for (final clip in clips)
-            _buildClipWidget(
+            TimelineClipWidget(
               clip: clip,
               scale: scale,
               height: trackHeight - 6,
+              controller: widget.controller,
             ),
         ],
       ),
@@ -492,212 +416,15 @@ class _TimelineViewState extends State<TimelineView> {
             ),
           ),
           for (final clip in clips)
-            _buildClipWidget(
+            TimelineClipWidget(
               clip: clip,
               scale: scale,
               height: 32,
               isAudio: true,
+              controller: widget.controller,
             ),
         ],
       ),
     );
   }
-
-  Widget _buildClipWidget({
-    required TimelineClip clip,
-    required double scale,
-    required double height,
-    bool isAudio = false,
-  }) {
-    final controller = widget.controller;
-    final isSelected = controller.selectedClipId == clip.id;
-    final left = _msToPx(clip.startMs, scale);
-    final width = max(24.0, _msToPx(clip.durationMs, scale));
-
-    return Positioned(
-      left: left,
-      top: 3,
-      width: width,
-      height: height,
-      child: GestureDetector(
-        onTap: () => controller.selectClip(clip.id),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isAudio
-                ? AppTheme.timelineAudioClip
-                : (clip.isPrimary
-                    ? AppTheme.timelinePrimaryClip
-                    : (clip.type == ClipType.text
-                        ? AppTheme.timelineTextClip
-                        : AppTheme.timelineSecondaryClip)),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: isSelected
-                  ? const Color(0xFFFFD700) // Golden KineMaster yellow
-                  : Colors.white.withValues(alpha: 0.15),
-              width: isSelected ? 2.5 : 1.0,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: const Color(0xFFFFD700).withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      spreadRadius: 1,
-                    ),
-                  ]
-                : null,
-          ),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Waveform pattern for audio
-              if (isAudio)
-                CustomPaint(
-                  painter: _AudioWaveformPainter(),
-                ),
-
-              // Keyframe Markers
-              for (final k in clip.keyframes)
-                Positioned(
-                  left: (_msToPx(k.timeMs, scale) - 4).clamp(0.0, width - 8),
-                  bottom: 3,
-                  child: Transform.rotate(
-                    angle: pi / 4,
-                    child: Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFD700),
-                        border: Border.all(color: Colors.black87, width: 0.8),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black45,
-                            blurRadius: 2,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Clip Content Info
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Row(
-                  children: [
-                    Icon(
-                      clip.type.icon,
-                      size: 13,
-                      color: Colors.white70,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        clip.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    if (width > 60)
-                      Text(
-                        '${(clip.durationMs / 1000).toStringAsFixed(1)}s',
-                        style: TextStyle(
-                          fontSize: 9,
-                          fontFamily: 'monospace',
-                          color: Colors.white.withValues(alpha: 0.6),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-
-              // Trim Handles when selected
-              if (isSelected) ...[
-                // Left Handle
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 7,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFD700),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(4),
-                        bottomLeft: Radius.circular(4),
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.drag_indicator,
-                          size: 9, color: Colors.black87),
-                    ),
-                  ),
-                ),
-                // Right Handle
-                Positioned(
-                  right: 0,
-                  top: 0,
-                  bottom: 0,
-                  child: Container(
-                    width: 7,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFD700),
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(4),
-                        bottomRight: Radius.circular(4),
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(Icons.drag_indicator,
-                          size: 9, color: Colors.black87),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PlayheadPointerPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = AppTheme.playhead;
-    final path = Path()
-      ..moveTo(0, 0)
-      ..lineTo(size.width, 0)
-      ..lineTo(size.width / 2, size.height)
-      ..close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _AudioWaveformPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.15)
-      ..strokeWidth = 1.5;
-
-    final step = 4.0;
-    for (double x = 4; x < size.width - 4; x += step) {
-      final h = sin(x * 0.1).abs() * (size.height * 0.6) + 4;
-      final y1 = (size.height - h) / 2;
-      canvas.drawLine(Offset(x, y1), Offset(x, y1 + h), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
+import '../utils/color_filters.dart';
+import 'preview/clip_pattern_painter.dart';
+import 'preview/direct_manipulation_overlay.dart';
+import 'preview/transition_renderer.dart';
 
 class PreviewPlayer extends StatelessWidget {
   final EditorController controller;
@@ -16,88 +20,6 @@ class PreviewPlayer extends StatelessWidget {
     final seconds = (totalSeconds % 60).floor();
     final millis = ((ms % 1000) / 100).floor();
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}.${millis.toString()}';
-  }
-
-  ColorFilter? _getFilter(ColorFilterPreset preset) {
-    switch (preset) {
-      case ColorFilterPreset.warm:
-        return const ColorFilter.matrix(<double>[
-          1.2, 0, 0, 0, 15,
-          0, 1.0, 0, 0, 0,
-          0, 0, 0.8, 0, -10,
-          0, 0, 0, 1, 0,
-        ]);
-      case ColorFilterPreset.cool:
-        return const ColorFilter.matrix(<double>[
-          0.8, 0, 0, 0, -10,
-          0, 1.0, 0, 0, 0,
-          0, 0, 1.3, 0, 20,
-          0, 0, 0, 1, 0,
-        ]);
-      case ColorFilterPreset.vivid:
-        return const ColorFilter.matrix(<double>[
-          1.3, -0.1, -0.1, 0, 0,
-          -0.1, 1.3, -0.1, 0, 0,
-          -0.1, -0.1, 1.3, 0, 0,
-          0, 0, 0, 1, 0,
-        ]);
-      case ColorFilterPreset.mono:
-        return const ColorFilter.matrix(<double>[
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0, 0, 0, 1, 0,
-        ]);
-      case ColorFilterPreset.vintage:
-        return const ColorFilter.matrix(<double>[
-          0.9, 0.5, 0.1, 0, 10,
-          0.3, 0.8, 0.1, 0, 0,
-          0.2, 0.3, 0.5, 0, -20,
-          0, 0, 0, 1, 0,
-        ]);
-      case ColorFilterPreset.cyberpunk:
-        return const ColorFilter.matrix(<double>[
-          1.2, 0.0, 0.4, 0, 20,
-          0.0, 0.8, 0.2, 0, -10,
-          0.4, 0.0, 1.4, 0, 30,
-          0, 0, 0, 1, 0,
-        ]);
-      case ColorFilterPreset.none:
-        return null;
-    }
-  }
-
-  ColorFilter _getChromaKeyFilter(int keyColor, double threshold, bool showMask) {
-    if (showMask) {
-      // Silhouette mask: White for foreground, black for key
-      return const ColorFilter.matrix(<double>[
-        2.0, -2.0, 2.0, 0, 0,
-        2.0, -2.0, 2.0, 0, 0,
-        2.0, -2.0, 2.0, 0, 0,
-        0, 0, 0, 1, 0,
-      ]);
-    }
-
-    final isGreen = ((keyColor >> 8) & 0xFF) > ((keyColor >> 16) & 0xFF) &&
-        ((keyColor >> 8) & 0xFF) > (keyColor & 0xFF);
-
-    if (isGreen) {
-      // Chroma key Green: suppress green spill and attenuate alpha for green
-      return const ColorFilter.matrix(<double>[
-        1.0, 0.0, 0.0, 0, 0,
-        0.0, 0.15, 0.0, 0, 0,
-        0.0, 0.0, 1.0, 0, 0,
-        0.6, -1.2, 0.6, 1, 0,
-      ]);
-    } else {
-      // Chroma key Blue: suppress blue spill and attenuate alpha for blue
-      return const ColorFilter.matrix(<double>[
-        1.0, 0.0, 0.0, 0, 0,
-        0.0, 1.0, 0.0, 0, 0,
-        0.0, 0.0, 0.15, 0, 0,
-        0.6, 0.6, -1.2, 1, 0,
-      ]);
-    }
   }
 
   @override
@@ -148,7 +70,12 @@ class PreviewPlayer extends StatelessWidget {
                     children: [
                       // Primary Track Background with Transition
                       if (activePrimary != null)
-                        _buildPrimaryWithTransition(project, activePrimary, playhead)
+                        PrimaryTransitionRenderer.build(
+                          project: project,
+                          activeClip: activePrimary,
+                          playhead: playhead,
+                          buildClipVisual: _buildClipVisual,
+                        )
                       else
                         Center(
                           child: Column(
@@ -163,7 +90,8 @@ class PreviewPlayer extends StatelessWidget {
                               Text(
                                 'No Media at Current Time',
                                 style: TextStyle(
-                                  color: AppTheme.textMuted.withValues(alpha: 0.6),
+                                  color:
+                                      AppTheme.textMuted.withValues(alpha: 0.6),
                                   fontSize: 13,
                                 ),
                               ),
@@ -178,11 +106,12 @@ class PreviewPlayer extends StatelessWidget {
                       // Interactive Direct Manipulation Handle (for selected layer)
                       if (controller.selectedClip != null &&
                           !controller.selectedClip!.isPrimary &&
-                          activeSecondaries.any((c) => c.id == controller.selectedClipId))
-                        _buildDirectManipulationOverlay(
-                          context,
-                          controller.selectedClip!,
-                          playhead,
+                          activeSecondaries
+                              .any((c) => c.id == controller.selectedClipId))
+                        DirectManipulationOverlay(
+                          controller: controller,
+                          layer: controller.selectedClip!,
+                          playheadMs: playhead,
                         ),
                     ],
                   ),
@@ -254,81 +183,8 @@ class PreviewPlayer extends StatelessWidget {
     );
   }
 
-  Widget _buildPrimaryWithTransition(
-    dynamic project,
-    TimelineClip activeClip,
-    int playhead,
-  ) {
-    final primaries = (project.primaryClips as List<TimelineClip>);
-    final index = primaries.indexWhere((c) => c.id == activeClip.id);
-    final prevClip = index > 0 ? primaries[index - 1] : null;
-
-    final transitionDuration = activeClip.transitionDurationMs;
-    final transitionElapsed = playhead - activeClip.startMs;
-
-    if (prevClip != null &&
-        activeClip.transition != TransitionType.none &&
-        transitionElapsed >= 0 &&
-        transitionElapsed < transitionDuration) {
-      final progress =
-          (transitionElapsed / transitionDuration).clamp(0.0, 1.0);
-      final prevWidget = _buildClipVisual(prevClip);
-      final currWidget = _buildClipVisual(activeClip);
-
-      switch (activeClip.transition) {
-        case TransitionType.fade:
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Opacity(opacity: (1.0 - progress).clamp(0.0, 1.0), child: prevWidget),
-              Opacity(opacity: progress, child: currWidget),
-            ],
-          );
-        case TransitionType.slideUp:
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              prevWidget,
-              FractionalTranslation(
-                translation: Offset(0, 1.0 - progress),
-                child: currWidget,
-              ),
-            ],
-          );
-        case TransitionType.wipeLeft:
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              prevWidget,
-              ClipRect(
-                clipper: _HorizontalWipeClipper(progress),
-                child: currWidget,
-              ),
-            ],
-          );
-        case TransitionType.zoom:
-          return Stack(
-            fit: StackFit.expand,
-            children: [
-              Opacity(
-                  opacity: (1.0 - progress).clamp(0.0, 1.0),
-                  child: prevWidget),
-              Transform.scale(
-                scale: 0.5 + (0.5 * progress),
-                child: Opacity(opacity: progress, child: currWidget),
-              ),
-            ],
-          );
-        case TransitionType.none:
-          return currWidget;
-      }
-    }
-
-    return _buildClipVisual(activeClip);
-  }
-
   Widget _buildClipVisual(TimelineClip clip) {
-    final filter = _getFilter(clip.filter);
+    final filter = ColorFilterHelper.getPresetFilter(clip.filter);
 
     Widget content;
     final file = clip.assetPath != null ? File(clip.assetPath!) : null;
@@ -342,7 +198,6 @@ class PreviewPlayer extends StatelessWidget {
               _buildPlaceholderVisual(clip),
         );
       } else {
-        // Video file preview
         content = Container(
           color: Colors.black87,
           child: Stack(
@@ -350,7 +205,7 @@ class PreviewPlayer extends StatelessWidget {
             children: [
               CustomPaint(
                 size: Size.infinite,
-                painter: _ClipPatternPainter(clip.color),
+                painter: ClipPatternPainter(clip.color),
               ),
               Column(
                 mainAxisSize: MainAxisSize.min,
@@ -358,7 +213,8 @@ class PreviewPlayer extends StatelessWidget {
                   const Icon(Icons.videocam, size: 48, color: Colors.white70),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.black54,
                       borderRadius: BorderRadius.circular(6),
@@ -401,7 +257,7 @@ class PreviewPlayer extends StatelessWidget {
         children: [
           CustomPaint(
             size: Size.infinite,
-            painter: _ClipPatternPainter(clip.color),
+            painter: ClipPatternPainter(clip.color),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -431,7 +287,7 @@ class PreviewPlayer extends StatelessWidget {
   }
 
   Widget _buildLayerVisual(TimelineClip layer, int playheadMs) {
-    final filter = _getFilter(layer.filter);
+    final filter = ColorFilterHelper.getPresetFilter(layer.filter);
     final transform = layer.getInterpolatedTransform(playheadMs);
 
     Widget layerWidget;
@@ -494,12 +350,13 @@ class PreviewPlayer extends StatelessWidget {
     }
 
     if (layer.isChromaKeyEnabled) {
-      final chromaFilter = _getChromaKeyFilter(
+      final chromaFilter = ColorFilterHelper.getChromaKeyFilter(
         layer.chromaKeyColor,
         layer.chromaThreshold,
         layer.chromaShowMask,
       );
-      layerWidget = ColorFiltered(colorFilter: chromaFilter, child: layerWidget);
+      layerWidget =
+          ColorFiltered(colorFilter: chromaFilter, child: layerWidget);
     } else if (filter != null) {
       layerWidget = ColorFiltered(colorFilter: filter, child: layerWidget);
     }
@@ -520,172 +377,5 @@ class PreviewPlayer extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Widget _buildDirectManipulationOverlay(
-    BuildContext context,
-    TimelineClip layer,
-    int playheadMs,
-  ) {
-    final transform = layer.getInterpolatedTransform(playheadMs);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final vpW = constraints.maxWidth;
-        final vpH = constraints.maxHeight;
-
-        double boxW = 160.0;
-        double boxH = 110.0;
-        if (layer.type == ClipType.text) {
-          boxW = 200.0;
-          boxH = 60.0;
-        }
-
-        return Positioned.fill(
-          child: Align(
-            alignment: Alignment(transform.offsetX, transform.offsetY),
-            child: Transform.rotate(
-              angle: transform.rotation * (pi / 180),
-              child: Transform.scale(
-                scale: transform.scale,
-                child: GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanUpdate: (details) {
-                    final dx = details.delta.dx / (vpW / 2);
-                    final dy = details.delta.dy / (vpH / 2);
-                    final updated = layer.copyWith(
-                      offsetX: (layer.offsetX + dx).clamp(-1.5, 1.5),
-                      offsetY: (layer.offsetY + dy).clamp(-1.5, 1.5),
-                    );
-                    controller.updateClip(updated);
-                  },
-                  child: Container(
-                    width: boxW,
-                    height: boxH,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFFFFD700),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        _buildHandle(top: -5, left: -5),
-                        _buildHandle(top: -5, right: -5),
-                        _buildHandle(bottom: -5, left: -5),
-                        // Bottom-right scale handle
-                        Positioned(
-                          right: -8,
-                          bottom: -8,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onPanUpdate: (details) {
-                              final scaleDelta = details.delta.dx * 0.01;
-                              final updated = layer.copyWith(
-                                scale: (layer.scale + scaleDelta).clamp(0.2, 4.0),
-                              );
-                              controller.updateClip(updated);
-                            },
-                            child: Container(
-                              width: 16,
-                              height: 16,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFFD700),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.open_in_full, size: 9, color: Colors.black),
-                            ),
-                          ),
-                        ),
-                        // Top rotate handle
-                        Positioned(
-                          top: -24,
-                          left: (boxW / 2) - 8,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onPanUpdate: (details) {
-                              final rotDelta = details.delta.dx * 1.5;
-                              final updated = layer.copyWith(
-                                rotation: (layer.rotation + rotDelta) % 360,
-                              );
-                              controller.updateClip(updated);
-                            },
-                            child: Container(
-                              width: 16,
-                              height: 16,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFFFD700),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.rotate_right, size: 10, color: Colors.black),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildHandle({double? top, double? bottom, double? left, double? right}) {
-    return Positioned(
-      top: top,
-      bottom: bottom,
-      left: left,
-      right: right,
-      child: Container(
-        width: 10,
-        height: 10,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFD700),
-          border: Border.all(color: Colors.black, width: 1),
-        ),
-      ),
-    );
-  }
-}
-
-class _ClipPatternPainter extends CustomPainter {
-  final Color baseColor;
-  _ClipPatternPainter(this.baseColor);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
-      ..strokeWidth = 1.0;
-
-    for (double i = -size.height; i < size.width; i += 32) {
-      canvas.drawLine(
-        Offset(i, 0),
-        Offset(i + size.height, size.height),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _HorizontalWipeClipper extends CustomClipper<Rect> {
-  final double progress;
-  _HorizontalWipeClipper(this.progress);
-
-  @override
-  Rect getClip(Size size) {
-    return Rect.fromLTWH(0, 0, size.width * progress, size.height);
-  }
-
-  @override
-  bool shouldReclip(covariant _HorizontalWipeClipper oldClipper) {
-    return oldClipper.progress != progress;
   }
 }

@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
+import 'inspector/chroma_key_section.dart';
+import 'inspector/inspector_slider.dart';
+import 'inspector/keyframe_section.dart';
+import 'inspector/trim_split_toolbar.dart';
 
 class ClipInspector extends StatefulWidget {
   final EditorController controller;
@@ -40,6 +44,55 @@ class _ClipInspectorState extends State<ClipInspector> {
   void dispose() {
     _textEditingController.dispose();
     super.dispose();
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.textMuted,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return Material(
+      color: AppTheme.surfaceVariant,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: color ?? AppTheme.textPrimary),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: color ?? AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -96,42 +149,7 @@ class _ClipInspectorState extends State<ClipInspector> {
               children: [
                 // Quick Actions: Split & Trim
                 _buildSectionHeader('TRIM & SPLIT'),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: Icons.cut,
-                        label: 'Split',
-                        onTap: () => controller.splitClipAtPlayhead(clip.id),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: Icons.keyboard_tab,
-                        label: 'Trim L',
-                        onTap: () => controller.trimClipLeft(clip.id),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: Icons.east,
-                        label: 'Trim R',
-                        onTap: () => controller.trimClipRight(clip.id),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: _buildActionButton(
-                        icon: Icons.delete_outline,
-                        label: 'Delete',
-                        color: Colors.redAccent,
-                        onTap: () => controller.deleteClip(clip.id),
-                      ),
-                    ),
-                  ],
-                ),
+                TrimSplitToolbar(controller: controller, clip: clip),
 
                 const SizedBox(height: 14),
 
@@ -157,7 +175,7 @@ class _ClipInspectorState extends State<ClipInspector> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  _buildSlider(
+                  InspectorSlider(
                     label: 'Font Size',
                     value: clip.fontSize,
                     min: 12.0,
@@ -170,7 +188,7 @@ class _ClipInspectorState extends State<ClipInspector> {
 
                 // Transform & Positioning
                 _buildSectionHeader('TRANSFORM'),
-                _buildSlider(
+                InspectorSlider(
                   label: 'Scale',
                   value: clip.scale,
                   min: 0.2,
@@ -178,7 +196,7 @@ class _ClipInspectorState extends State<ClipInspector> {
                   onChanged: (val) =>
                       controller.updateClip(clip.copyWith(scale: val)),
                 ),
-                _buildSlider(
+                InspectorSlider(
                   label: 'Rotation',
                   value: clip.rotation,
                   min: -180.0,
@@ -187,7 +205,7 @@ class _ClipInspectorState extends State<ClipInspector> {
                       controller.updateClip(clip.copyWith(rotation: val)),
                 ),
                 if (!clip.isPrimary) ...[
-                  _buildSlider(
+                  InspectorSlider(
                     label: 'Position X',
                     value: clip.offsetX,
                     min: -1.0,
@@ -195,7 +213,7 @@ class _ClipInspectorState extends State<ClipInspector> {
                     onChanged: (val) =>
                         controller.updateClip(clip.copyWith(offsetX: val)),
                   ),
-                  _buildSlider(
+                  InspectorSlider(
                     label: 'Position Y',
                     value: clip.offsetY,
                     min: -1.0,
@@ -209,70 +227,7 @@ class _ClipInspectorState extends State<ClipInspector> {
 
                 // Keyframe Animation
                 _buildSectionHeader('KEYFRAME ANIMATION'),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppTheme.cardColor,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.divider),
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.skip_previous, size: 18),
-                        tooltip: 'Previous Keyframe',
-                        onPressed: clip.keyframes.isEmpty
-                            ? null
-                            : () => controller.jumpToPreviousKeyframe(clip.id),
-                      ),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: () =>
-                              controller.toggleKeyframeAtPlayhead(clip.id),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: controller.hasKeyframeNearPlayhead(clip)
-                                ? Colors.redAccent
-                                : AppTheme.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 6, vertical: 8),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                          ),
-                          icon: Icon(
-                            controller.hasKeyframeNearPlayhead(clip)
-                                ? Icons.remove
-                                : Icons.add,
-                            size: 16,
-                          ),
-                          label: Text(
-                            controller.hasKeyframeNearPlayhead(clip)
-                                ? 'Remove'
-                                : 'Add Keyframe',
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.skip_next, size: 18),
-                        tooltip: 'Next Keyframe',
-                        onPressed: clip.keyframes.isEmpty
-                            ? null
-                            : () => controller.jumpToNextKeyframe(clip.id),
-                      ),
-                    ],
-                  ),
-                ),
-                if (clip.keyframes.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 4, left: 4),
-                    child: Text(
-                      '${clip.keyframes.length} keyframes active',
-                      style: const TextStyle(
-                          fontSize: 10, color: AppTheme.textMuted),
-                    ),
-                  ),
+                KeyframeSection(controller: controller, clip: clip),
 
                 const SizedBox(height: 14),
 
@@ -312,97 +267,13 @@ class _ClipInspectorState extends State<ClipInspector> {
                 // Chroma Key (Green Screen)
                 if (!clip.isPrimary) ...[
                   _buildSectionHeader('CHROMA KEY'),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppTheme.cardColor,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppTheme.divider),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Enable Chroma Key',
-                              style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.textPrimary),
-                            ),
-                            Switch(
-                              value: clip.isChromaKeyEnabled,
-                              activeTrackColor: AppTheme.primary,
-                              onChanged: (val) => controller.updateClip(
-                                  clip.copyWith(isChromaKeyEnabled: val)),
-                            ),
-                          ],
-                        ),
-                        if (clip.isChromaKeyEnabled) ...[
-                          const SizedBox(height: 8),
-                          const Text('Key Color:',
-                              style: TextStyle(
-                                  fontSize: 11, color: AppTheme.textMuted)),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              _buildKeyColorChip(
-                                  controller, clip, 'Green', 0xFF00FF00),
-                              const SizedBox(width: 6),
-                              _buildKeyColorChip(
-                                  controller, clip, 'Blue', 0xFF0000FF),
-                              const SizedBox(width: 6),
-                              _buildKeyColorChip(
-                                  controller, clip, 'Cyan', 0xFF00FFFF),
-                              const SizedBox(width: 6),
-                              _buildKeyColorChip(
-                                  controller, clip, 'Magenta', 0xFFFF00FF),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          _buildSlider(
-                            label: 'Threshold (Similarity)',
-                            value: clip.chromaThreshold * 100,
-                            min: 5.0,
-                            max: 90.0,
-                            onChanged: (val) => controller.updateClip(
-                                clip.copyWith(chromaThreshold: val / 100.0)),
-                          ),
-                          _buildSlider(
-                            label: 'Detail (Smoothness)',
-                            value: clip.chromaSmoothness * 100,
-                            min: 0.0,
-                            max: 50.0,
-                            onChanged: (val) => controller.updateClip(
-                                clip.copyWith(chromaSmoothness: val / 100.0)),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text('Show B&W Mask',
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.textSecondary)),
-                              Switch(
-                                value: clip.chromaShowMask,
-                                activeTrackColor: Colors.amber,
-                                onChanged: (val) => controller.updateClip(
-                                    clip.copyWith(chromaShowMask: val)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
+                  ChromaKeySection(controller: controller, clip: clip),
                   const SizedBox(height: 14),
                 ],
 
                 // Opacity & Blending
                 _buildSectionHeader('OPACITY & BLEND'),
-                _buildSlider(
+                InspectorSlider(
                   label: 'Alpha',
                   value: clip.opacity * 100,
                   min: 0.0,
@@ -415,7 +286,7 @@ class _ClipInspectorState extends State<ClipInspector> {
 
                 // Audio & Speed
                 _buildSectionHeader('AUDIO & SPEED'),
-                _buildSlider(
+                InspectorSlider(
                   label: 'Volume',
                   value: clip.volume * 100,
                   min: 0.0,
@@ -501,136 +372,6 @@ class _ClipInspectorState extends State<ClipInspector> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-          color: AppTheme.textMuted,
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    return Material(
-      color: AppTheme.surfaceVariant,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 18, color: color ?? AppTheme.textPrimary),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: color ?? AppTheme.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSlider({
-    required String label,
-    required double value,
-    required double min,
-    required double max,
-    required ValueChanged<double> onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label,
-                style: const TextStyle(
-                    fontSize: 12, color: AppTheme.textSecondary)),
-            Text(
-              value.toStringAsFixed(1),
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontFamily: 'monospace',
-                  color: AppTheme.textPrimary),
-            ),
-          ],
-        ),
-        Slider(
-          value: value.clamp(min, max),
-          min: min,
-          max: max,
-          onChanged: onChanged,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildKeyColorChip(
-    EditorController controller,
-    TimelineClip clip,
-    String label,
-    int colorVal,
-  ) {
-    final isSel = clip.chromaKeyColor == colorVal;
-    return InkWell(
-      onTap: () => controller.updateClip(clip.copyWith(chromaKeyColor: colorVal)),
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-        decoration: BoxDecoration(
-          color: Color(colorVal).withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSel ? Colors.white : Color(colorVal).withValues(alpha: 0.5),
-            width: isSel ? 2.0 : 1.0,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(colorVal),
-              ),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
