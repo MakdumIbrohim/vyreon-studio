@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/project.dart';
 import '../models/timeline_clip.dart';
+import '../services/audio_playback_service.dart';
 import '../services/project_storage_service.dart';
 
 class EditorController extends ChangeNotifier {
@@ -70,9 +71,18 @@ class EditorController extends ChangeNotifier {
     }
   }
 
+  void _syncAudio() {
+    AudioPlaybackService.instance.syncPlayback(
+      playheadMs: _playheadMs,
+      isPlaying: _isPlaying,
+      audioClips: _project.clips,
+    );
+  }
+
   void seekTo(int ms) {
     final total = max(1000, _project.totalDurationMs);
     _playheadMs = ms.clamp(0, total);
+    _syncAudio();
     notifyListeners();
   }
 
@@ -104,6 +114,7 @@ class EditorController extends ChangeNotifier {
     }
     _isPlaying = true;
     _lastTickTime = DateTime.now();
+    _syncAudio();
     _playbackTimer = Timer.periodic(const Duration(milliseconds: 33), (timer) {
       final now = DateTime.now();
       final dt = now.difference(_lastTickTime!).inMilliseconds;
@@ -115,6 +126,7 @@ class EditorController extends ChangeNotifier {
         _playheadMs = maxD;
         pause();
       }
+      _syncAudio();
       notifyListeners();
     });
     notifyListeners();
@@ -125,6 +137,7 @@ class EditorController extends ChangeNotifier {
     _isPlaying = false;
     _playbackTimer?.cancel();
     _playbackTimer = null;
+    _syncAudio();
     notifyListeners();
   }
 
@@ -392,6 +405,7 @@ class EditorController extends ChangeNotifier {
   @override
   void dispose() {
     _playbackTimer?.cancel();
+    AudioPlaybackService.instance.dispose();
     super.dispose();
   }
 }
