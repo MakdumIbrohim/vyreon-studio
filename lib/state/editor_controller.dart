@@ -1,0 +1,335 @@
+import 'dart:async';
+import 'dart:math';
+import 'package:flutter/material.dart';
+import '../models/project.dart';
+import '../models/timeline_clip.dart';
+import '../services/project_storage_service.dart';
+
+class EditorController extends ChangeNotifier {
+  Project _project;
+  int _playheadMs = 0;
+  bool _isPlaying = false;
+  String? _selectedClipId;
+  double _timelineScale = 60.0; // pixels per second
+  Timer? _playbackTimer;
+  DateTime? _lastTickTime;
+
+  // Undo / Redo history
+  final List<Project> _undoStack = [];
+  final List<Project> _redoStack = [];
+  static const int _maxHistory = 30;
+
+  EditorController(this._project);
+
+  Project get project => _project;
+  int get playheadMs => _playheadMs;
+  bool get isPlaying => _isPlaying;
+  String? get selectedClipId => _selectedClipId;
+  double get timelineScale => _timelineScale;
+  bool get canUndo => _undoStack.isNotEmpty;
+  bool get canRedo => _redoStack.isNotEmpty;
+
+  TimelineClip? get selectedClip {
+    if (_selectedClipId == null) return null;
+    for (final c in _project.clips) {
+      if (c.id == _selectedClipId) return c;
+    }
+    return null;
+  }
+
+  void _pushUndo() {
+    _undoStack.add(_project);
+    if (_undoStack.length > _maxHistory) {
+      _undoStack.removeAt(0);
+    }
+    _redoStack.clear();
+  }
+
+  void undo() {
+    if (!canUndo) return;
+    _redoStack.add(_project);
+    _project = _undoStack.removeLast();
+    _clampPlayhead();
+    notifyListeners();
+    _autoSave();
+  }
+
+  void redo() {
+    if (!canRedo) return;
+    _undoStack.add(_project);
+    _project = _redoStack.removeLast();
+    _clampPlayhead();
+    notifyListeners();
+    _autoSave();
+  }
+
+  void _clampPlayhead() {
+    final maxD = max(1000, _project.totalDurationMs);
+    if (_playheadMs > maxD) {
+      _playheadMs = maxD;
+    }
+  }
+
+  void seekTo(int ms) {
+    final total = max(1000, _project.totalDurationMs);
+    _playheadMs = ms.clamp(0, total);
+    notifyListeners();
+  }
+
+  void selectClip(String? id) {
+    if (_selectedClipId != id) {
+      _selectedClipId = id;
+      notifyListeners();
+    }
+  }
+
+  void setTimelineScale(double scale) {
+    _timelineScale = scale.clamp(20.0, 200.0);
+    notifyListeners();
+  }
+
+  void togglePlay() {
+    if (_isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  }
+
+  void play() {
+    if (_isPlaying) return;
+    final total = _project.totalDurationMs;
+    if (_playheadMs >= total && total > 0) {
+      _playheadMs = 0;
+    }
+    _isPlaying = true;
+    _lastTickTime = DateTime.now();
+    _playbackTimer = Timer.periodic(const Duration(milliseconds: 33), (timer) {
+      final now = DateTime.now();
+      final dt = now.difference(_lastTickTime!).inMilliseconds;
+      _lastTickTime = now;
+
+      _playheadMs += dt;
+      final maxD = _project.totalDurationMs;
+      if (_playheadMs >= maxD) {
+        _playheadMs = maxD;
+        pause();
+      }
+      notifyListeners();
+    });
+    notifyListeners();
+  }
+
+  void pause() {
+    if (!_isPlaying) return;
+    _isPlaying = false;
+    _playbackTimer?.cancel();
+    _playbackTimer = null;
+    notifyListeners();
+  }
+
+  void addPrimaryClip(TimelineClip clip) {
+    _pushUndo();
+    final primaries = _project.primaryClips;
+    final start = primaries.isEmpty ? 0 : primaries.last.endMs;
+    final newClip = clip.copyWith(
+      startMs: start,
+      isPrimary: true,
+      trackIndex: 0,
+    );
+    _project = _project.copyWith(
+      clips: [..._project.clips, newClip],
+      modifiedAt: DateTime.now(),
+    );
+    _project = _project.packPrimaryClips();
+    notifyListeners();
+    _autoSave();
+  }
+
+  void addSecondaryClip(TimelineClip clip) {
+    _pushUndo();
+    final newClip = clip.copyWith(
+      startMs: _playheadMs,
+      isPrimary: false,
+    );
+    _project = _project.copyWith(
+      clips: [..._project.clips, newClip],
+      modifiedAt: DateTime.now(),
+    );
+    _selectedClipId = newClip.id;
+    notifyListeners();
+    _autoSave();
+  }
+
+  void updateClip(TimelineClip updated) {
+    _pushUndo();
+    final index = _project.clips.indexWhere((c) => c.id == updated.id);
+    if (index >= 0) {
+      final newClips = List<TimelineClip>.from(_project.clips);
+      newClips[index] = updated;
+      _project = _project.copyWith(
+        clips: newClips,
+        modifiedAt: DateTime.now(),
+      );
+      if (updated.isPrimary) {
+        _project = _project.packPrimaryClips();
+      }
+      notifyListeners();
+      _autoSave();
+    }
+  }
+
+  void splitClipAtPlayhead(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    if (_playheadMs <= clip.startMs || _playheadMs >= clip.endMs) {
+      return; // Not inside clip
+    }
+
+    _pushUndo();
+    final firstDuration = _playheadMs - clip.startMs;
+    final secondDuration = clip.durationMs - firstDuration;
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    final clipA = clip.copyWith(
+      durationMs: firstDuration,
+      sourceDurationMs: firstDuration,
+    );
+
+    final clipB = clip.copyWith(
+      id: '${clip.id}_split_$now',
+      startMs: _playheadMs,
+      durationMs: secondDuration,
+      sourceInMs: clip.sourceInMs + firstDuration,
+      sourceDurationMs: secondDuration,
+    );
+
+    final newClips = <TimelineClip>[];
+    for (final c in _project.clips) {
+      if (c.id == clipId) {
+        newClips.add(clipA);
+        newClips.add(clipB);
+      } else {
+        newClips.add(c);
+      }
+    }
+
+    _project = _project.copyWith(
+      clips: newClips,
+      modifiedAt: DateTime.now(),
+    );
+    if (clip.isPrimary) {
+      _project = _project.packPrimaryClips();
+    }
+    _selectedClipId = clipB.id;
+    notifyListeners();
+    _autoSave();
+  }
+
+  void trimClipLeft(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    if (_playheadMs <= clip.startMs || _playheadMs >= clip.endMs) return;
+
+    _pushUndo();
+    final delta = _playheadMs - clip.startMs;
+    final updated = clip.copyWith(
+      startMs: _playheadMs,
+      durationMs: clip.durationMs - delta,
+      sourceInMs: clip.sourceInMs + delta,
+    );
+
+    updateClip(updated);
+  }
+
+  void trimClipRight(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    if (_playheadMs <= clip.startMs || _playheadMs >= clip.endMs) return;
+
+    _pushUndo();
+    final newDuration = _playheadMs - clip.startMs;
+    final updated = clip.copyWith(
+      durationMs: newDuration,
+    );
+
+    updateClip(updated);
+  }
+
+  void deleteClip(String clipId) {
+    _pushUndo();
+    final wasPrimary = selectedClip?.isPrimary ?? false;
+    final newClips = _project.clips.where((c) => c.id != clipId).toList();
+    _project = _project.copyWith(
+      clips: newClips,
+      modifiedAt: DateTime.now(),
+    );
+    if (wasPrimary) {
+      _project = _project.packPrimaryClips();
+    }
+    _selectedClipId = null;
+    _clampPlayhead();
+    notifyListeners();
+    _autoSave();
+  }
+
+  void duplicateClip(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    _pushUndo();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final copy = clip.copyWith(
+      id: '${clip.id}_copy_$now',
+      name: '${clip.name} (Copy)',
+      startMs: clip.isPrimary ? clip.endMs : clip.startMs + 500,
+    );
+
+    _project = _project.copyWith(
+      clips: [..._project.clips, copy],
+      modifiedAt: DateTime.now(),
+    );
+    if (clip.isPrimary) {
+      _project = _project.packPrimaryClips();
+    }
+    _selectedClipId = copy.id;
+    notifyListeners();
+    _autoSave();
+  }
+
+  void duplicateAsLayer(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    _pushUndo();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final copy = clip.copyWith(
+      id: '${clip.id}_layer_$now',
+      name: '${clip.name} (Layer)',
+      isPrimary: false,
+      trackIndex: 1,
+      scale: 0.6,
+    );
+
+    _project = _project.copyWith(
+      clips: [..._project.clips, copy],
+      modifiedAt: DateTime.now(),
+    );
+    _selectedClipId = copy.id;
+    notifyListeners();
+    _autoSave();
+  }
+
+  void updateSettings(dynamic newSettings) {
+    _pushUndo();
+    _project = _project.copyWith(
+      settings: newSettings,
+      modifiedAt: DateTime.now(),
+    );
+    notifyListeners();
+    _autoSave();
+  }
+
+  void _autoSave() {
+    ProjectStorageService.instance.saveProject(_project);
+  }
+
+  @override
+  void dispose() {
+    _playbackTimer?.cancel();
+    super.dispose();
+  }
+}
