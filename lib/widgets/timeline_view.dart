@@ -556,6 +556,30 @@ class _TimelineViewState extends State<TimelineView> {
                   painter: _AudioWaveformPainter(),
                 ),
 
+              // Keyframe Markers
+              for (final k in clip.keyframes)
+                Positioned(
+                  left: (_msToPx(k.timeMs, scale) - 4).clamp(0.0, width - 8),
+                  bottom: 3,
+                  child: Transform.rotate(
+                    angle: pi / 4,
+                    child: Container(
+                      width: 7,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFFD700),
+                        border: Border.all(color: Colors.black87, width: 0.8),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black45,
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
               // Clip Content Info
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),

@@ -253,6 +253,68 @@ class EditorController extends ChangeNotifier {
     updateClip(updated);
   }
 
+  bool hasKeyframeNearPlayhead(TimelineClip clip) {
+    if (_playheadMs < clip.startMs || _playheadMs > clip.endMs) return false;
+    final relMs = _playheadMs - clip.startMs;
+    return clip.keyframes.any((k) => (k.timeMs - relMs).abs() <= 150);
+  }
+
+  void toggleKeyframeAtPlayhead(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    if (_playheadMs < clip.startMs || _playheadMs > clip.endMs) return;
+
+    final relMs = (_playheadMs - clip.startMs).clamp(0, clip.durationMs);
+    final keyframes = List<Keyframe>.from(clip.keyframes);
+    final existingIndex = keyframes.indexWhere((k) => (k.timeMs - relMs).abs() <= 150);
+
+    if (existingIndex >= 0) {
+      // Remove keyframe
+      keyframes.removeAt(existingIndex);
+    } else {
+      // Add keyframe with current transform properties
+      final newK = Keyframe(
+        timeMs: relMs,
+        scale: clip.scale,
+        rotation: clip.rotation,
+        offsetX: clip.offsetX,
+        offsetY: clip.offsetY,
+        opacity: clip.opacity,
+      );
+      keyframes.add(newK);
+      keyframes.sort((a, b) => a.timeMs.compareTo(b.timeMs));
+    }
+
+    updateClip(clip.copyWith(keyframes: keyframes));
+  }
+
+  void jumpToPreviousKeyframe(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    final relMs = _playheadMs - clip.startMs;
+    final sorted = List<Keyframe>.from(clip.keyframes)
+      ..sort((a, b) => a.timeMs.compareTo(b.timeMs));
+
+    for (int i = sorted.length - 1; i >= 0; i--) {
+      if (sorted[i].timeMs < relMs - 50) {
+        seekTo(clip.startMs + sorted[i].timeMs);
+        return;
+      }
+    }
+  }
+
+  void jumpToNextKeyframe(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    final relMs = _playheadMs - clip.startMs;
+    final sorted = List<Keyframe>.from(clip.keyframes)
+      ..sort((a, b) => a.timeMs.compareTo(b.timeMs));
+
+    for (final k in sorted) {
+      if (k.timeMs > relMs + 50) {
+        seekTo(clip.startMs + k.timeMs);
+        return;
+      }
+    }
+  }
+
   void deleteClip(String clipId) {
     _pushUndo();
     final wasPrimary = selectedClip?.isPrimary ?? false;

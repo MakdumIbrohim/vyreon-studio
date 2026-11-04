@@ -207,6 +207,75 @@ class _ClipInspectorState extends State<ClipInspector> {
 
                 const SizedBox(height: 14),
 
+                // Keyframe Animation
+                _buildSectionHeader('KEYFRAME ANIMATION'),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.divider),
+                  ),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.skip_previous, size: 18),
+                        tooltip: 'Previous Keyframe',
+                        onPressed: clip.keyframes.isEmpty
+                            ? null
+                            : () => controller.jumpToPreviousKeyframe(clip.id),
+                      ),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () =>
+                              controller.toggleKeyframeAtPlayhead(clip.id),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: controller.hasKeyframeNearPlayhead(clip)
+                                ? Colors.redAccent
+                                : AppTheme.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          icon: Icon(
+                            controller.hasKeyframeNearPlayhead(clip)
+                                ? Icons.remove
+                                : Icons.add,
+                            size: 16,
+                          ),
+                          label: Text(
+                            controller.hasKeyframeNearPlayhead(clip)
+                                ? 'Remove'
+                                : 'Add Keyframe',
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.skip_next, size: 18),
+                        tooltip: 'Next Keyframe',
+                        onPressed: clip.keyframes.isEmpty
+                            ? null
+                            : () => controller.jumpToNextKeyframe(clip.id),
+                      ),
+                    ],
+                  ),
+                ),
+                if (clip.keyframes.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, left: 4),
+                    child: Text(
+                      '${clip.keyframes.length} keyframes active',
+                      style: const TextStyle(
+                          fontSize: 10, color: AppTheme.textMuted),
+                    ),
+                  ),
+
+                const SizedBox(height: 14),
+
                 // Color Filters
                 _buildSectionHeader('COLOR FILTER'),
                 SizedBox(

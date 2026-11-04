@@ -48,6 +48,12 @@ void main() {
     controller.undo();
     expect(controller.project.clips.length, project.clips.length);
 
+    // Keyframe operations test
+    final textClipId = controller.project.secondaryClips.first.id;
+    controller.seekTo(controller.project.secondaryClips.first.startMs + 500);
+    controller.toggleKeyframeAtPlayhead(textClipId);
+    expect(controller.project.clips.firstWhere((c) => c.id == textClipId).keyframes.length, 1);
+
     controller.dispose();
   });
 }

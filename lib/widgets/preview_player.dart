@@ -140,7 +140,7 @@ class PreviewPlayer extends StatelessWidget {
 
                       // Secondary Overlay Layers
                       for (final layer in activeSecondaries)
-                        _buildLayerVisual(layer),
+                        _buildLayerVisual(layer, playhead),
                     ],
                   ),
                 ),
@@ -387,8 +387,9 @@ class PreviewPlayer extends StatelessWidget {
     );
   }
 
-  Widget _buildLayerVisual(TimelineClip layer) {
+  Widget _buildLayerVisual(TimelineClip layer, int playheadMs) {
     final filter = _getFilter(layer.filter);
+    final transform = layer.getInterpolatedTransform(playheadMs);
 
     Widget layerWidget;
     if (layer.type == ClipType.text) {
@@ -453,16 +454,16 @@ class PreviewPlayer extends StatelessWidget {
       layerWidget = ColorFiltered(colorFilter: filter, child: layerWidget);
     }
 
-    // Apply transform and positioning
+    // Apply interpolated keyframe transform and positioning
     return Positioned.fill(
       child: Align(
-        alignment: Alignment(layer.offsetX, layer.offsetY),
+        alignment: Alignment(transform.offsetX, transform.offsetY),
         child: Transform.rotate(
-          angle: layer.rotation * (pi / 180),
+          angle: transform.rotation * (pi / 180),
           child: Transform.scale(
-            scale: layer.scale,
+            scale: transform.scale,
             child: Opacity(
-              opacity: layer.opacity.clamp(0.0, 1.0),
+              opacity: transform.opacity.clamp(0.0, 1.0),
               child: layerWidget,
             ),
           ),
