@@ -55,6 +55,90 @@ class _TimelineViewState extends State<TimelineView> {
   double _msToPx(int ms, double scale) => (ms / 1000.0) * scale;
   int _pxToMs(double px, double scale) => ((px / scale) * 1000).round();
 
+  Future<void> _editTransition(TimelineClip nextClip) async {
+    TransitionType selected = nextClip.transition;
+    double durationSec = nextClip.transitionDurationMs / 1000.0;
+
+    final updated = await showDialog<TimelineClip>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppTheme.surface,
+              title: const Row(
+                children: [
+                  Icon(Icons.auto_awesome, color: AppTheme.primary, size: 20),
+                  SizedBox(width: 8),
+                  Text('Clip Transition', style: TextStyle(fontSize: 16)),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Select Transition Effect:',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: TransitionType.values.map((t) {
+                      final isSel = selected == t;
+                      return ChoiceChip(
+                        avatar: Icon(t.icon, size: 16, color: isSel ? Colors.white : AppTheme.textSecondary),
+                        label: Text(t.label),
+                        selected: isSel,
+                        selectedColor: AppTheme.primary,
+                        backgroundColor: AppTheme.surfaceVariant,
+                        onSelected: (_) => setDialogState(() => selected = t),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Duration:', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                      Text('${durationSec.toStringAsFixed(1)}s', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  Slider(
+                    value: durationSec,
+                    min: 0.5,
+                    max: 3.0,
+                    onChanged: (val) => setDialogState(() => durationSec = val),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel', style: TextStyle(color: AppTheme.textSecondary)),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
+                  onPressed: () {
+                    final newClip = nextClip.copyWith(
+                      transition: selected,
+                      transitionDurationMs: (durationSec * 1000).round(),
+                    );
+                    Navigator.of(ctx).pop(newClip);
+                  },
+                  child: const Text('Apply', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (updated != null) {
+      widget.controller.updateClip(updated);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -310,25 +394,34 @@ class _TimelineViewState extends State<TimelineView> {
             // Transition indicator between primary clips
             if (i < clips.length - 1)
               Positioned(
-                left: _msToPx(clips[i].endMs, scale) - 8,
-                top: 18,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.5),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(
-                    Icons.change_circle,
-                    size: 14,
-                    color: Color(0xFF1E293B),
+                left: _msToPx(clips[i].endMs, scale) - 9,
+                top: 17,
+                child: GestureDetector(
+                  onTap: () => _editTransition(clips[i + 1]),
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: clips[i + 1].transition != TransitionType.none
+                          ? AppTheme.primary
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      clips[i + 1].transition != TransitionType.none
+                          ? clips[i + 1].transition.icon
+                          : Icons.change_circle,
+                      size: 13,
+                      color: clips[i + 1].transition != TransitionType.none
+                          ? Colors.white
+                          : const Color(0xFF1E293B),
+                    ),
                   ),
                 ),
               ),

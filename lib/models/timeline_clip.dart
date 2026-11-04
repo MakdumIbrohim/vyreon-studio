@@ -26,6 +26,18 @@ enum ColorFilterPreset {
   const ColorFilterPreset(this.label);
 }
 
+enum TransitionType {
+  none('None / Cut', Icons.block),
+  fade('Crossfade', Icons.blur_linear),
+  wipeLeft('Wipe', Icons.swipe_left),
+  slideUp('Slide Up', Icons.arrow_upward),
+  zoom('Zoom Dissolve', Icons.zoom_in);
+
+  final String label;
+  final IconData icon;
+  const TransitionType(this.label, this.icon);
+}
+
 class TimelineClip {
   final String id;
   final String name;
@@ -52,6 +64,8 @@ class TimelineClip {
   final double speed;
   final bool isPrimary;
   final int trackIndex;
+  final TransitionType transition;
+  final int transitionDurationMs;
 
   const TimelineClip({
     required this.id,
@@ -79,6 +93,8 @@ class TimelineClip {
     this.speed = 1.0,
     this.isPrimary = true,
     this.trackIndex = 0,
+    this.transition = TransitionType.none,
+    this.transitionDurationMs = 1000,
   });
 
   int get endMs => startMs + durationMs;
@@ -111,6 +127,8 @@ class TimelineClip {
     double? speed,
     bool? isPrimary,
     int? trackIndex,
+    TransitionType? transition,
+    int? transitionDurationMs,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -138,6 +156,9 @@ class TimelineClip {
       speed: speed ?? this.speed,
       isPrimary: isPrimary ?? this.isPrimary,
       trackIndex: trackIndex ?? this.trackIndex,
+      transition: transition ?? this.transition,
+      transitionDurationMs:
+          transitionDurationMs ?? this.transitionDurationMs,
     );
   }
 
@@ -167,6 +188,8 @@ class TimelineClip {
     'speed': speed,
     'isPrimary': isPrimary,
     'trackIndex': trackIndex,
+    'transition': transition.name,
+    'transitionDurationMs': transitionDurationMs,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -204,6 +227,12 @@ class TimelineClip {
       speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
       isPrimary: json['isPrimary'] as bool? ?? true,
       trackIndex: (json['trackIndex'] as num?)?.toInt() ?? 0,
+      transition: TransitionType.values.firstWhere(
+        (e) => e.name == json['transition'],
+        orElse: () => TransitionType.none,
+      ),
+      transitionDurationMs:
+          (json['transitionDurationMs'] as num?)?.toInt() ?? 1000,
     );
   }
 }

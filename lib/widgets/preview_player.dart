@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
@@ -112,9 +113,9 @@ class PreviewPlayer extends StatelessWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      // Primary Track Background
+                      // Primary Track Background with Transition
                       if (activePrimary != null)
-                        _buildClipVisual(activePrimary)
+                        _buildPrimaryWithTransition(project, activePrimary, playhead)
                       else
                         Center(
                           child: Column(
@@ -210,21 +211,155 @@ class PreviewPlayer extends StatelessWidget {
     );
   }
 
+  Widget _buildPrimaryWithTransition(
+    dynamic project,
+    TimelineClip activeClip,
+    int playhead,
+  ) {
+    final primaries = (project.primaryClips as List<TimelineClip>);
+    final index = primaries.indexWhere((c) => c.id == activeClip.id);
+    final prevClip = index > 0 ? primaries[index - 1] : null;
+
+    final transitionDuration = activeClip.transitionDurationMs;
+    final transitionElapsed = playhead - activeClip.startMs;
+
+    if (prevClip != null &&
+        activeClip.transition != TransitionType.none &&
+        transitionElapsed >= 0 &&
+        transitionElapsed < transitionDuration) {
+      final progress =
+          (transitionElapsed / transitionDuration).clamp(0.0, 1.0);
+      final prevWidget = _buildClipVisual(prevClip);
+      final currWidget = _buildClipVisual(activeClip);
+
+      switch (activeClip.transition) {
+        case TransitionType.fade:
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(opacity: (1.0 - progress).clamp(0.0, 1.0), child: prevWidget),
+              Opacity(opacity: progress, child: currWidget),
+            ],
+          );
+        case TransitionType.slideUp:
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              prevWidget,
+              FractionalTranslation(
+                translation: Offset(0, 1.0 - progress),
+                child: currWidget,
+              ),
+            ],
+          );
+        case TransitionType.wipeLeft:
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              prevWidget,
+              ClipRect(
+                clipper: _HorizontalWipeClipper(progress),
+                child: currWidget,
+              ),
+            ],
+          );
+        case TransitionType.zoom:
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(
+                  opacity: (1.0 - progress).clamp(0.0, 1.0),
+                  child: prevWidget),
+              Transform.scale(
+                scale: 0.5 + (0.5 * progress),
+                child: Opacity(opacity: progress, child: currWidget),
+              ),
+            ],
+          );
+        case TransitionType.none:
+          return currWidget;
+      }
+    }
+
+    return _buildClipVisual(activeClip);
+  }
+
   Widget _buildClipVisual(TimelineClip clip) {
     final filter = _getFilter(clip.filter);
 
-    Widget content = Container(
+    Widget content;
+    final file = clip.assetPath != null ? File(clip.assetPath!) : null;
+
+    if (file != null && file.existsSync()) {
+      if (clip.type == ClipType.image) {
+        content = Image.file(
+          file,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) =>
+              _buildPlaceholderVisual(clip),
+        );
+      } else {
+        // Video file preview
+        content = Container(
+          color: Colors.black87,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: Size.infinite,
+                painter: _ClipPatternPainter(clip.color),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.videocam, size: 48, color: Colors.white70),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      clip.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }
+    } else {
+      content = _buildPlaceholderVisual(clip);
+    }
+
+    if (filter != null) {
+      content = ColorFiltered(colorFilter: filter, child: content);
+    }
+
+    return Opacity(
+      opacity: clip.opacity.clamp(0.0, 1.0),
+      child: content,
+    );
+  }
+
+  Widget _buildPlaceholderVisual(TimelineClip clip) {
+    return Container(
       color: clip.color,
       alignment: Alignment.center,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Background subtle pattern
           CustomPaint(
             size: Size.infinite,
             painter: _ClipPatternPainter(clip.color),
           ),
-          // Clip title badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
@@ -249,15 +384,6 @@ class PreviewPlayer extends StatelessWidget {
           ),
         ],
       ),
-    );
-
-    if (filter != null) {
-      content = ColorFiltered(colorFilter: filter, child: content);
-    }
-
-    return Opacity(
-      opacity: clip.opacity.clamp(0.0, 1.0),
-      child: content,
     );
   }
 
@@ -367,4 +493,19 @@ class _ClipPatternPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _HorizontalWipeClipper extends CustomClipper<Rect> {
+  final double progress;
+  _HorizontalWipeClipper(this.progress);
+
+  @override
+  Rect getClip(Size size) {
+    return Rect.fromLTWH(0, 0, size.width * progress, size.height);
+  }
+
+  @override
+  bool shouldReclip(covariant _HorizontalWipeClipper oldClipper) {
+    return oldClipper.progress != progress;
+  }
 }

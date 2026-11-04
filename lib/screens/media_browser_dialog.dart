@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
 import '../services/media_catalog_service.dart';
@@ -48,6 +49,55 @@ class _MediaBrowserDialogState extends State<MediaBrowserDialog>
     Navigator.of(context).pop(clip);
   }
 
+  Future<void> _pickDeviceFiles() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.any,
+    );
+
+    if (files.isNotEmpty) {
+      final file = files.first;
+      final path = file.path;
+      final name = file.name;
+      final ext = file.extension?.toLowerCase() ?? '';
+
+      ClipType detectedType = ClipType.video;
+      int defaultDuration = 5000;
+      int colorVal = 0xFF2196F3;
+
+      if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'].contains(ext)) {
+        detectedType = ClipType.image;
+        defaultDuration = 4500;
+        colorVal = 0xFF9C27B0;
+      } else if (['mp3', 'wav', 'aac', 'm4a', 'flac', 'ogg'].contains(ext)) {
+        detectedType = ClipType.audio;
+        defaultDuration = 10000;
+        colorVal = 0xFF009688;
+      } else {
+        detectedType = ClipType.video;
+        defaultDuration = 6000;
+        colorVal = 0xFFE91E63;
+      }
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final clip = TimelineClip(
+        id: 'imported_${now}_$name',
+        name: name,
+        type: detectedType,
+        startMs: 0,
+        durationMs: defaultDuration,
+        sourceDurationMs: defaultDuration,
+        assetPath: path,
+        colorValue: colorVal,
+        isPrimary: widget.isPrimaryMode,
+        trackIndex: widget.isPrimaryMode ? 0 : (detectedType == ClipType.audio ? 3 : 1),
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(clip);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -82,6 +132,20 @@ class _MediaBrowserDialogState extends State<MediaBrowserDialog>
                     ),
                   ),
                   const Spacer(),
+                  ElevatedButton.icon(
+                    onPressed: _pickDeviceFiles,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.file_upload, size: 16),
+                    label: const Text('Device Storage', style: TextStyle(fontSize: 12)),
+                  ),
+                  const SizedBox(width: 8),
                   IconButton(
                     icon: const Icon(Icons.close, size: 20),
                     onPressed: () => Navigator.of(context).pop(),
