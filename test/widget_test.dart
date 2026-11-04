@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vyreon_studio/main.dart';
 import 'package:vyreon_studio/models/aspect_ratio.dart';
 import 'package:vyreon_studio/models/project.dart';
+import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
 
@@ -53,6 +54,19 @@ void main() {
     controller.seekTo(controller.project.secondaryClips.first.startMs + 500);
     controller.toggleKeyframeAtPlayhead(textClipId);
     expect(controller.project.clips.firstWhere((c) => c.id == textClipId).keyframes.length, 1);
+
+    // Speed curve interpolation test
+    final clip = controller.project.primaryClips.first;
+    expect(clip.getEffectiveSpeedAt(0.5), 1.0);
+    final rampedClip = clip.copyWith(
+      speedPoints: [
+        const SpeedPoint(position: 0.0, speed: 1.0),
+        const SpeedPoint(position: 0.5, speed: 0.3),
+        const SpeedPoint(position: 1.0, speed: 2.0),
+      ],
+    );
+    expect(rampedClip.getEffectiveSpeedAt(0.5), closeTo(0.3, 0.001));
+    expect(rampedClip.getEffectiveSpeedAt(0.25) < 1.0, true);
 
     controller.dispose();
   });

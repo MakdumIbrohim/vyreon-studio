@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'clip_types.dart';
 import 'keyframe.dart';
+import 'speed_point.dart';
 import 'transition_type.dart';
 
 export 'clip_types.dart';
 export 'keyframe.dart';
+export 'speed_point.dart';
 export 'transition_type.dart';
 
 class TimelineClip {
@@ -41,6 +43,7 @@ class TimelineClip {
   final double chromaThreshold;
   final double chromaSmoothness;
   final bool chromaShowMask;
+  final List<SpeedPoint> speedPoints;
 
   const TimelineClip({
     required this.id,
@@ -76,11 +79,33 @@ class TimelineClip {
     this.chromaThreshold = 0.35,
     this.chromaSmoothness = 0.1,
     this.chromaShowMask = false,
+    this.speedPoints = const [],
   });
 
   int get endMs => startMs + durationMs;
 
   Color get color => Color(colorValue);
+
+  double getEffectiveSpeedAt(double progress) {
+    if (speedPoints.isEmpty) return speed;
+    final p = progress.clamp(0.0, 1.0);
+    final sorted = List<SpeedPoint>.from(speedPoints)
+      ..sort((a, b) => a.position.compareTo(b.position));
+
+    if (p <= sorted.first.position) return sorted.first.speed;
+    if (p >= sorted.last.position) return sorted.last.speed;
+
+    for (int i = 0; i < sorted.length - 1; i++) {
+      final p1 = sorted[i];
+      final p2 = sorted[i + 1];
+      if (p >= p1.position && p <= p2.position) {
+        final span = p2.position - p1.position;
+        final t = span > 0 ? (p - p1.position) / span : 0.0;
+        return p1.speed + (p2.speed - p1.speed) * t;
+      }
+    }
+    return speed;
+  }
 
   InterpolatedTransform getInterpolatedTransform(int currentPlayheadMs) {
     if (keyframes.isEmpty) {
@@ -178,6 +203,7 @@ class TimelineClip {
     double? chromaThreshold,
     double? chromaSmoothness,
     bool? chromaShowMask,
+    List<SpeedPoint>? speedPoints,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -214,6 +240,7 @@ class TimelineClip {
       chromaThreshold: chromaThreshold ?? this.chromaThreshold,
       chromaSmoothness: chromaSmoothness ?? this.chromaSmoothness,
       chromaShowMask: chromaShowMask ?? this.chromaShowMask,
+      speedPoints: speedPoints ?? this.speedPoints,
     );
   }
 
@@ -251,6 +278,7 @@ class TimelineClip {
     'chromaThreshold': chromaThreshold,
     'chromaSmoothness': chromaSmoothness,
     'chromaShowMask': chromaShowMask,
+    'speedPoints': speedPoints.map((s) => s.toJson()).toList(),
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -306,6 +334,10 @@ class TimelineClip {
       chromaSmoothness:
           (json['chromaSmoothness'] as num?)?.toDouble() ?? 0.1,
       chromaShowMask: json['chromaShowMask'] as bool? ?? false,
+      speedPoints: (json['speedPoints'] as List<dynamic>?)
+              ?.map((s) => SpeedPoint.fromJson(s as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
   }
 }

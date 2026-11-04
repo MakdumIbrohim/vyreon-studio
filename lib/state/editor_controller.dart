@@ -120,7 +120,18 @@ class EditorController extends ChangeNotifier {
       final dt = now.difference(_lastTickTime!).inMilliseconds;
       _lastTickTime = now;
 
-      _playheadMs += dt;
+      double currentSpeedMultiplier = 1.0;
+      for (final c in _project.primaryClips) {
+        if (_playheadMs >= c.startMs && _playheadMs < c.endMs) {
+          final progress = c.durationMs > 0
+              ? (_playheadMs - c.startMs) / c.durationMs
+              : 0.0;
+          currentSpeedMultiplier = c.getEffectiveSpeedAt(progress);
+          break;
+        }
+      }
+
+      _playheadMs += (dt * currentSpeedMultiplier).round();
       final maxD = _project.totalDurationMs;
       if (_playheadMs >= maxD) {
         _playheadMs = maxD;
