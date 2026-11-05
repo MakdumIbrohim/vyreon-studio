@@ -3,6 +3,7 @@ import 'package:vyreon_studio/main.dart';
 import 'package:vyreon_studio/models/aspect_ratio.dart';
 import 'package:vyreon_studio/models/project.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
+import 'package:vyreon_studio/services/audio_waveform_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
 
@@ -22,7 +23,7 @@ void main() {
     expect(find.text('Create New Project'), findsOneWidget);
   });
 
-  test('EditorController timeline operations test', () {
+  test('EditorController timeline operations test', () async {
     final project = Project.createSample('Test Project', ProjectAspectRatio.ratio16x9);
     final controller = EditorController(project);
 
@@ -104,6 +105,18 @@ void main() {
     expect(audioClip.eqPreset.bandGains.first, 6);
     expect(audioClip.voiceChanger, VoiceChangerPreset.chipmunk);
     expect(audioClip.voiceChanger.pitchSemitones, 6);
+
+    // Audio Waveform test
+    final waveformSamples = await AudioWaveformService().getWaveformSamples(
+      clipId: audioClip.id,
+      durationMs: audioClip.durationMs,
+      targetSampleCount: 50,
+    );
+    expect(waveformSamples.length, 50);
+    expect(waveformSamples.first, greaterThan(0.0));
+
+    final clipWithWaveform = audioClip.copyWith(waveformSamples: waveformSamples);
+    expect(clipWithWaveform.waveformSamples.isNotEmpty, true);
 
     controller.dispose();
   });

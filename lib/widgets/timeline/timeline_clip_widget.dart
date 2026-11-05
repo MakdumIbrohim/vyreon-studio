@@ -66,9 +66,16 @@ class TimelineClipWidget extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // Waveform pattern for audio
-              if (isAudio)
+              if (isAudio || clip.type == ClipType.audio)
                 CustomPaint(
-                  painter: AudioWaveformPainter(),
+                  painter: AudioWaveformPainter(
+                    samples: clip.waveformSamples,
+                    volume: clip.volume,
+                    isMuted: clip.isMuted,
+                    playheadProgress: clip.durationMs > 0
+                        ? ((controller.playheadMs - clip.startMs) / clip.durationMs).clamp(0.0, 1.0)
+                        : 0.0,
+                  ),
                 ),
 
               // Keyframe Markers

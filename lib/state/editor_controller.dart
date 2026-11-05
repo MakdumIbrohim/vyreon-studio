@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/project.dart';
 import '../models/timeline_clip.dart';
 import '../services/audio_playback_service.dart';
+import '../services/audio_waveform_service.dart';
 import '../services/project_storage_service.dart';
 
 class EditorController extends ChangeNotifier {
@@ -183,6 +184,23 @@ class EditorController extends ChangeNotifier {
     _selectedClipId = newClip.id;
     notifyListeners();
     _autoSave();
+
+    if (newClip.type == ClipType.audio && newClip.waveformSamples.isEmpty) {
+      AudioWaveformService().getWaveformSamples(
+        filePath: newClip.assetPath,
+        clipId: newClip.id,
+        durationMs: newClip.durationMs,
+      ).then((samples) {
+        final idx = _project.clips.indexWhere((c) => c.id == newClip.id);
+        if (idx >= 0) {
+          final updated = _project.clips[idx].copyWith(waveformSamples: samples);
+          final updatedList = List<TimelineClip>.from(_project.clips);
+          updatedList[idx] = updated;
+          _project = _project.copyWith(clips: updatedList);
+          notifyListeners();
+        }
+      });
+    }
   }
 
   void updateClip(TimelineClip updated) {

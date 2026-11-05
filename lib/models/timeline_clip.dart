@@ -59,6 +59,7 @@ class TimelineClip {
   final double textGlowRadius;
   final AudioEqPreset eqPreset;
   final VoiceChangerPreset voiceChanger;
+  final List<double> waveformSamples;
 
   const TimelineClip({
     required this.id,
@@ -108,6 +109,7 @@ class TimelineClip {
     this.textGlowRadius = 12.0,
     this.eqPreset = AudioEqPreset.normal,
     this.voiceChanger = VoiceChangerPreset.none,
+    this.waveformSamples = const [],
   });
 
   int get endMs => startMs + durationMs;
@@ -245,6 +247,7 @@ class TimelineClip {
     double? textGlowRadius,
     AudioEqPreset? eqPreset,
     VoiceChangerPreset? voiceChanger,
+    List<double>? waveformSamples,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -295,6 +298,7 @@ class TimelineClip {
       textGlowRadius: textGlowRadius ?? this.textGlowRadius,
       eqPreset: eqPreset ?? this.eqPreset,
       voiceChanger: voiceChanger ?? this.voiceChanger,
+      waveformSamples: waveformSamples ?? this.waveformSamples,
     );
   }
 
@@ -346,6 +350,7 @@ class TimelineClip {
     'textGlowRadius': textGlowRadius,
     'eqPreset': eqPreset.name,
     'voiceChanger': voiceChanger.name,
+    'waveformSamples': waveformSamples,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -431,6 +436,10 @@ class TimelineClip {
         (e) => e.name == json['voiceChanger'],
         orElse: () => VoiceChangerPreset.none,
       ),
+      waveformSamples: (json['waveformSamples'] as List<dynamic>?)
+              ?.map((w) => (w as num).toDouble())
+              .toList() ??
+          const [],
     );
   }
 }
