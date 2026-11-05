@@ -265,6 +265,56 @@ class _ClipInspectorState extends State<ClipInspector> {
 
                 const SizedBox(height: 14),
 
+                // Vignette Effect
+                _buildSectionHeader('VIGNETTE EFFECT'),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.divider),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Cinematic Vignette',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          Switch(
+                            value: clip.isVignetteEnabled,
+                            activeTrackColor: AppTheme.primary,
+                            onChanged: (val) => controller.updateClip(
+                              clip.copyWith(isVignetteEnabled: val),
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (clip.isVignetteEnabled) ...[
+                        const SizedBox(height: 6),
+                        InspectorSlider(
+                          label: 'Intensity',
+                          value: clip.vignetteIntensity * 100,
+                          min: 10.0,
+                          max: 100.0,
+                          onChanged: (val) => controller.updateClip(
+                            clip.copyWith(vignetteIntensity: val / 100.0),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
                 // Chroma Key (Green Screen)
                 if (!clip.isPrimary) ...[
                   _buildSectionHeader('CHROMA KEY'),

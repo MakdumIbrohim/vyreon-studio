@@ -15,12 +15,17 @@ enum ClipType {
 
 enum ColorFilterPreset {
   none('Normal'),
-  warm('Warm'),
-  cool('Cool'),
-  vivid('Vivid'),
+  warm('Warm Sunset'),
+  cool('Cool Slate'),
+  vivid('Vivid Pop'),
   mono('Monochrome'),
-  vintage('Vintage'),
-  cyberpunk('Cyberpunk');
+  vintage('Vintage 90s'),
+  cyberpunk('Cyberpunk Neon'),
+  tealAndOrange('Teal & Orange'),
+  filmNoir('Film Noir'),
+  sepia('Warm Sepia'),
+  bleachBypass('Bleach Bypass'),
+  emerald('Emerald Forest');
 
   final String label;
   const ColorFilterPreset(this.label);

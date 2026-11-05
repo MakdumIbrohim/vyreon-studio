@@ -44,6 +44,8 @@ class TimelineClip {
   final double chromaSmoothness;
   final bool chromaShowMask;
   final List<SpeedPoint> speedPoints;
+  final bool isVignetteEnabled;
+  final double vignetteIntensity;
 
   const TimelineClip({
     required this.id,
@@ -80,6 +82,8 @@ class TimelineClip {
     this.chromaSmoothness = 0.1,
     this.chromaShowMask = false,
     this.speedPoints = const [],
+    this.isVignetteEnabled = false,
+    this.vignetteIntensity = 0.5,
   });
 
   int get endMs => startMs + durationMs;
@@ -204,6 +208,8 @@ class TimelineClip {
     double? chromaSmoothness,
     bool? chromaShowMask,
     List<SpeedPoint>? speedPoints,
+    bool? isVignetteEnabled,
+    double? vignetteIntensity,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -241,6 +247,8 @@ class TimelineClip {
       chromaSmoothness: chromaSmoothness ?? this.chromaSmoothness,
       chromaShowMask: chromaShowMask ?? this.chromaShowMask,
       speedPoints: speedPoints ?? this.speedPoints,
+      isVignetteEnabled: isVignetteEnabled ?? this.isVignetteEnabled,
+      vignetteIntensity: vignetteIntensity ?? this.vignetteIntensity,
     );
   }
 
@@ -279,6 +287,8 @@ class TimelineClip {
     'chromaSmoothness': chromaSmoothness,
     'chromaShowMask': chromaShowMask,
     'speedPoints': speedPoints.map((s) => s.toJson()).toList(),
+    'isVignetteEnabled': isVignetteEnabled,
+    'vignetteIntensity': vignetteIntensity,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -338,6 +348,9 @@ class TimelineClip {
               ?.map((s) => SpeedPoint.fromJson(s as Map<String, dynamic>))
               .toList() ??
           const [],
+      isVignetteEnabled: json['isVignetteEnabled'] as bool? ?? false,
+      vignetteIntensity:
+          (json['vignetteIntensity'] as num?)?.toDouble() ?? 0.5,
     );
   }
 }

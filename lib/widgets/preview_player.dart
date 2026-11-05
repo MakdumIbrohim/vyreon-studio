@@ -242,6 +242,29 @@ class PreviewPlayer extends StatelessWidget {
       content = ColorFiltered(colorFilter: filter, child: content);
     }
 
+    if (clip.isVignetteEnabled) {
+      content = Stack(
+        fit: StackFit.expand,
+        children: [
+          content,
+          IgnorePointer(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  radius: 0.85,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(
+                        alpha: clip.vignetteIntensity.clamp(0.0, 1.0)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Opacity(
       opacity: clip.opacity.clamp(0.0, 1.0),
       child: content,

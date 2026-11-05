@@ -46,6 +46,41 @@ class ColorFilterHelper {
           0.4, 0.0, 1.4, 0, 30,
           0, 0, 0, 1, 0,
         ]);
+      case ColorFilterPreset.tealAndOrange:
+        return const ColorFilter.matrix(<double>[
+          1.35, 0.0, -0.1, 0, 15,
+          0.0, 1.05, 0.05, 0, -5,
+          -0.2, 0.2, 1.4, 0, 25,
+          0, 0, 0, 1, 0,
+        ]);
+      case ColorFilterPreset.filmNoir:
+        return const ColorFilter.matrix(<double>[
+          0.5, 0.8, 0.1, 0, -20,
+          0.5, 0.8, 0.1, 0, -20,
+          0.5, 0.8, 0.1, 0, -20,
+          0, 0, 0, 1, 0,
+        ]);
+      case ColorFilterPreset.sepia:
+        return const ColorFilter.matrix(<double>[
+          0.393, 0.769, 0.189, 0, 0,
+          0.349, 0.686, 0.168, 0, 0,
+          0.272, 0.534, 0.131, 0, 0,
+          0, 0, 0, 1, 0,
+        ]);
+      case ColorFilterPreset.bleachBypass:
+        return const ColorFilter.matrix(<double>[
+          0.9, 0.2, 0.1, 0, -10,
+          0.2, 0.9, 0.1, 0, -10,
+          0.2, 0.2, 0.8, 0, -10,
+          0, 0, 0, 1, 0,
+        ]);
+      case ColorFilterPreset.emerald:
+        return const ColorFilter.matrix(<double>[
+          0.85, 0.1, 0.0, 0, -10,
+          0.1, 1.35, 0.1, 0, 15,
+          0.0, 0.1, 0.9, 0, -5,
+          0, 0, 0, 1, 0,
+        ]);
       case ColorFilterPreset.none:
         return null;
     }
@@ -57,7 +92,6 @@ class ColorFilterHelper {
     bool showMask,
   ) {
     if (showMask) {
-      // Silhouette mask: White for foreground, black for key
       return const ColorFilter.matrix(<double>[
         2.0, -2.0, 2.0, 0, 0,
         2.0, -2.0, 2.0, 0, 0,
@@ -70,7 +104,6 @@ class ColorFilterHelper {
         ((keyColor >> 8) & 0xFF) > (keyColor & 0xFF);
 
     if (isGreen) {
-      // Chroma key Green: suppress green spill and attenuate alpha for green
       return const ColorFilter.matrix(<double>[
         1.0, 0.0, 0.0, 0, 0,
         0.0, 0.15, 0.0, 0, 0,
@@ -78,7 +111,6 @@ class ColorFilterHelper {
         0.6, -1.2, 0.6, 1, 0,
       ]);
     } else {
-      // Chroma key Blue: suppress blue spill and attenuate alpha for blue
       return const ColorFilter.matrix(<double>[
         1.0, 0.0, 0.0, 0, 0,
         0.0, 1.0, 0.0, 0, 0,

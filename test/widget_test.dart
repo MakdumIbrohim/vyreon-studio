@@ -68,6 +68,16 @@ void main() {
     expect(rampedClip.getEffectiveSpeedAt(0.5), closeTo(0.3, 0.001));
     expect(rampedClip.getEffectiveSpeedAt(0.25) < 1.0, true);
 
+    // Color grading & Vignette test
+    final gradedClip = clip.copyWith(
+      filter: ColorFilterPreset.tealAndOrange,
+      isVignetteEnabled: true,
+      vignetteIntensity: 0.75,
+    );
+    expect(gradedClip.filter, ColorFilterPreset.tealAndOrange);
+    expect(gradedClip.isVignetteEnabled, true);
+    expect(gradedClip.vignetteIntensity, 0.75);
+
     controller.dispose();
   });
 }
