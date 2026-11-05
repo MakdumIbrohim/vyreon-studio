@@ -15,6 +15,7 @@ import 'package:vyreon_studio/services/rust_engine_service.dart';
 import 'package:vyreon_studio/services/srt_service.dart';
 import 'package:vyreon_studio/services/video_thumbnail_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
+import 'package:vyreon_studio/widgets/timeline/timeline_playhead_widget.dart';
 
 void main() {
   testWidgets('Vyreon Studio smoke test', (WidgetTester tester) async {
@@ -71,6 +72,12 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: EditorScreen(project: sampleProject)));
     await tester.pump();
     expect(find.byIcon(Icons.file_upload_outlined), findsWidgets);
+
+    // Verify playhead widget is present and draggable
+    final playheadFinder = find.byType(TimelinePlayheadWidget);
+    expect(playheadFinder, findsOneWidget);
+    await tester.drag(playheadFinder, const Offset(60, 0));
+    await tester.pump();
 
     addTearDown(tester.view.resetPhysicalSize);
   });

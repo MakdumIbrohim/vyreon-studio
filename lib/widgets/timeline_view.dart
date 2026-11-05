@@ -4,7 +4,7 @@ import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import 'time_ruler.dart';
-import 'timeline/timeline_painters.dart';
+import 'timeline/timeline_playhead_widget.dart';
 import 'timeline/timeline_zoom_toolbar.dart';
 import 'timeline/tracks/audio_track_view.dart';
 import 'timeline/tracks/primary_track_view.dart';
@@ -145,10 +145,34 @@ class _TimelineViewState extends State<TimelineView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // Time Ruler (Top)
-                                  TimeRuler(
-                                    scale: scale,
-                                    totalDurationMs: totalMs,
-                                    width: totalWidth,
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapDown: (details) {
+                                      final targetMs = _pxToMs(
+                                        details.localPosition.dx,
+                                        scale,
+                                      ).clamp(0, totalMs);
+                                      controller.seekTo(targetMs, snapToBeat: true);
+                                      controller.selectClip(null);
+                                    },
+                                    onHorizontalDragStart: (_) {
+                                      if (controller.isPlaying) controller.pause();
+                                    },
+                                    onHorizontalDragUpdate: (details) {
+                                      final targetMs = _pxToMs(
+                                        details.localPosition.dx,
+                                        scale,
+                                      ).clamp(0, totalMs);
+                                      controller.seekTo(targetMs, snapToBeat: true);
+                                    },
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: TimeRuler(
+                                        scale: scale,
+                                        totalDurationMs: totalMs,
+                                        width: totalWidth,
+                                      ),
+                                    ),
                                   ),
 
                                   const Divider(
@@ -202,30 +226,12 @@ class _TimelineViewState extends State<TimelineView> {
                                 ],
                               ),
 
-                              // Red Playhead Line
-                              Positioned(
-                                left: playheadX - 1,
-                                top: 0,
-                                bottom: 0,
-                                child: IgnorePointer(
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Container(
-                                        width: 2,
-                                        color: AppTheme.playhead,
-                                      ),
-                                      Positioned(
-                                        top: 0,
-                                        left: -5,
-                                        child: CustomPaint(
-                                          size: const Size(12, 10),
-                                          painter: PlayheadPointerPainter(),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                              // Interactive Red Playhead Line & Scrub Handle
+                              TimelinePlayheadWidget(
+                                controller: controller,
+                                playheadX: playheadX,
+                                scale: scale,
+                                totalMs: totalMs,
                               ),
                             ],
                           ),
