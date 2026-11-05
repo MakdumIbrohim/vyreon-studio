@@ -47,27 +47,36 @@ class LayerContentBuilder {
       );
     }
 
+    TextAlign align = TextAlign.center;
+    if (layer.textAlign == 'left') align = TextAlign.left;
+    if (layer.textAlign == 'right') align = TextAlign.right;
+
     final textMain = Text(
       layer.textContent,
-      textAlign: TextAlign.center,
+      textAlign: align,
       style: TextStyle(
         color: layer.color,
         fontSize: layer.fontSize,
         fontWeight: FontWeight.bold,
+        letterSpacing: layer.letterSpacing,
+        height: layer.lineSpacing,
         shadows: shadows,
       ),
     );
 
+    Widget resultWidget;
     if (layer.isTextOutlineEnabled) {
-      return Stack(
+      resultWidget = Stack(
         alignment: Alignment.center,
         children: [
           Text(
             layer.textContent,
-            textAlign: TextAlign.center,
+            textAlign: align,
             style: TextStyle(
               fontSize: layer.fontSize,
               fontWeight: FontWeight.bold,
+              letterSpacing: layer.letterSpacing,
+              height: layer.lineSpacing,
               foreground: Paint()
                 ..style = PaintingStyle.stroke
                 ..strokeWidth = layer.textOutlineWidth
@@ -77,8 +86,23 @@ class LayerContentBuilder {
           textMain,
         ],
       );
+    } else {
+      resultWidget = textMain;
     }
-    return textMain;
+
+    if (layer.isTextBackgroundEnabled) {
+      resultWidget = Container(
+        padding: EdgeInsets.all(layer.textBackgroundPadding),
+        decoration: BoxDecoration(
+          color: Color(layer.textBackgroundColor),
+          borderRadius:
+              BorderRadius.circular(layer.textBackgroundCornerRadius),
+        ),
+        child: resultWidget,
+      );
+    }
+
+    return resultWidget;
   }
 
   static Widget _buildStickerContent(TimelineClip layer) {

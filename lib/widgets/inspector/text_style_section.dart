@@ -229,6 +229,152 @@ class TextStyleSection extends StatelessWidget {
               onChanged: (val) => controller.updateClip(clip.copyWith(textGlowRadius: val)),
             ),
           ],
+
+          const Divider(height: 16, color: AppTheme.divider),
+
+          // Text Alignment
+          const Text(
+            'Alignment',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              for (final align in ['left', 'center', 'right']) ...[
+                Expanded(
+                  child: InkWell(
+                    onTap: () => controller
+                        .updateClip(clip.copyWith(textAlign: align)),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: clip.textAlign == align
+                            ? AppTheme.primary
+                            : AppTheme.surfaceVariant,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Icon(
+                        align == 'left'
+                            ? Icons.format_align_left
+                            : align == 'center'
+                                ? Icons.format_align_center
+                                : Icons.format_align_right,
+                        size: 16,
+                        color: clip.textAlign == align
+                            ? Colors.white
+                            : AppTheme.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+                if (align != 'right') const SizedBox(width: 6),
+              ],
+            ],
+          ),
+
+          const SizedBox(height: 10),
+
+          // Spacing Sliders
+          InspectorSlider(
+            label: 'Letter Spacing',
+            value: clip.letterSpacing,
+            min: -1.0,
+            max: 8.0,
+            onChanged: (val) =>
+                controller.updateClip(clip.copyWith(letterSpacing: val)),
+          ),
+          InspectorSlider(
+            label: 'Line Height',
+            value: clip.lineSpacing,
+            min: 0.8,
+            max: 2.2,
+            onChanged: (val) =>
+                controller.updateClip(clip.copyWith(lineSpacing: val)),
+          ),
+
+          const Divider(height: 16, color: AppTheme.divider),
+
+          // Text Background Box
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Background Box',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              Switch(
+                value: clip.isTextBackgroundEnabled,
+                activeTrackColor: AppTheme.primary,
+                onChanged: (val) => controller.updateClip(
+                  clip.copyWith(isTextBackgroundEnabled: val),
+                ),
+              ),
+            ],
+          ),
+          if (clip.isTextBackgroundEnabled) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                _buildColorChip(
+                  selectedColor: clip.textBackgroundColor,
+                  colorVal: 0x80000000,
+                  label: 'Dark 50%',
+                  onSelect: (c) => controller
+                      .updateClip(clip.copyWith(textBackgroundColor: c)),
+                ),
+                const SizedBox(width: 6),
+                _buildColorChip(
+                  selectedColor: clip.textBackgroundColor,
+                  colorVal: 0xCC000000,
+                  label: 'Black',
+                  onSelect: (c) => controller
+                      .updateClip(clip.copyWith(textBackgroundColor: c)),
+                ),
+                const SizedBox(width: 6),
+                _buildColorChip(
+                  selectedColor: clip.textBackgroundColor,
+                  colorVal: 0x991E293B,
+                  label: 'Slate',
+                  onSelect: (c) => controller
+                      .updateClip(clip.copyWith(textBackgroundColor: c)),
+                ),
+                const SizedBox(width: 6),
+                _buildColorChip(
+                  selectedColor: clip.textBackgroundColor,
+                  colorVal: 0x99880E4F,
+                  label: 'Wine',
+                  onSelect: (c) => controller
+                      .updateClip(clip.copyWith(textBackgroundColor: c)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            InspectorSlider(
+              label: 'Box Padding',
+              value: clip.textBackgroundPadding,
+              min: 4.0,
+              max: 24.0,
+              onChanged: (val) => controller
+                  .updateClip(clip.copyWith(textBackgroundPadding: val)),
+            ),
+            InspectorSlider(
+              label: 'Corner Radius',
+              value: clip.textBackgroundCornerRadius,
+              min: 0.0,
+              max: 20.0,
+              onChanged: (val) => controller.updateClip(
+                  clip.copyWith(textBackgroundCornerRadius: val)),
+            ),
+          ],
         ],
       ),
     );

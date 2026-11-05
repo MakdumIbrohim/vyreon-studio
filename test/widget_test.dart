@@ -374,6 +374,24 @@ Second subtitle line''';
     expect(controller.project.settings.audioFadeInDuration, 2.0);
     expect(controller.project.settings.audioFadeOutDuration, 3.0);
 
+    // Advanced Typography & Text Box styling test
+    final styledTextClip = textClip.copyWith(
+      textAlign: 'left',
+      letterSpacing: 2.5,
+      lineSpacing: 1.5,
+      isTextBackgroundEnabled: true,
+      textBackgroundColor: 0xCC000000,
+      textBackgroundCornerRadius: 8.0,
+      textBackgroundPadding: 12.0,
+    );
+    expect(styledTextClip.textAlign, 'left');
+    expect(styledTextClip.letterSpacing, 2.5);
+    expect(styledTextClip.lineSpacing, 1.5);
+    expect(styledTextClip.isTextBackgroundEnabled, true);
+    expect(styledTextClip.textBackgroundColor, 0xCC000000);
+    expect(styledTextClip.textBackgroundCornerRadius, 8.0);
+    expect(styledTextClip.textBackgroundPadding, 12.0);
+
     controller.dispose();
   });
 }

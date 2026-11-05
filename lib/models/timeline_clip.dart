@@ -82,6 +82,13 @@ class TimelineClip {
   final double duckingLevel;
   final ClipCropMask cropMask;
   final AudioReverbPreset reverbPreset;
+  final String textAlign;
+  final bool isTextBackgroundEnabled;
+  final int textBackgroundColor;
+  final double textBackgroundCornerRadius;
+  final double textBackgroundPadding;
+  final double letterSpacing;
+  final double lineSpacing;
 
   const TimelineClip({
     required this.id,
@@ -144,6 +151,13 @@ class TimelineClip {
     this.duckingLevel = 0.25,
     this.cropMask = const ClipCropMask(),
     this.reverbPreset = AudioReverbPreset.none,
+    this.textAlign = 'center',
+    this.isTextBackgroundEnabled = false,
+    this.textBackgroundColor = 0x80000000,
+    this.textBackgroundCornerRadius = 6.0,
+    this.textBackgroundPadding = 8.0,
+    this.letterSpacing = 0.0,
+    this.lineSpacing = 1.2,
   });
 
   int get endMs => startMs + durationMs;
@@ -323,6 +337,13 @@ class TimelineClip {
     double? duckingLevel,
     ClipCropMask? cropMask,
     AudioReverbPreset? reverbPreset,
+    String? textAlign,
+    bool? isTextBackgroundEnabled,
+    int? textBackgroundColor,
+    double? textBackgroundCornerRadius,
+    double? textBackgroundPadding,
+    double? letterSpacing,
+    double? lineSpacing,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -386,6 +407,16 @@ class TimelineClip {
       duckingLevel: duckingLevel ?? this.duckingLevel,
       cropMask: cropMask ?? this.cropMask,
       reverbPreset: reverbPreset ?? this.reverbPreset,
+      textAlign: textAlign ?? this.textAlign,
+      isTextBackgroundEnabled:
+          isTextBackgroundEnabled ?? this.isTextBackgroundEnabled,
+      textBackgroundColor: textBackgroundColor ?? this.textBackgroundColor,
+      textBackgroundCornerRadius:
+          textBackgroundCornerRadius ?? this.textBackgroundCornerRadius,
+      textBackgroundPadding:
+          textBackgroundPadding ?? this.textBackgroundPadding,
+      letterSpacing: letterSpacing ?? this.letterSpacing,
+      lineSpacing: lineSpacing ?? this.lineSpacing,
     );
   }
 
@@ -450,6 +481,13 @@ class TimelineClip {
     'duckingLevel': duckingLevel,
     'cropMask': cropMask.toJson(),
     'reverbPreset': reverbPreset.name,
+    'textAlign': textAlign,
+    'isTextBackgroundEnabled': isTextBackgroundEnabled,
+    'textBackgroundColor': textBackgroundColor,
+    'textBackgroundCornerRadius': textBackgroundCornerRadius,
+    'textBackgroundPadding': textBackgroundPadding,
+    'letterSpacing': letterSpacing,
+    'lineSpacing': lineSpacing,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -573,6 +611,17 @@ class TimelineClip {
         (e) => e.name == json['reverbPreset'],
         orElse: () => AudioReverbPreset.none,
       ),
+      textAlign: json['textAlign'] as String? ?? 'center',
+      isTextBackgroundEnabled:
+          json['isTextBackgroundEnabled'] as bool? ?? false,
+      textBackgroundColor:
+          (json['textBackgroundColor'] as num?)?.toInt() ?? 0x80000000,
+      textBackgroundCornerRadius:
+          (json['textBackgroundCornerRadius'] as num?)?.toDouble() ?? 6.0,
+      textBackgroundPadding:
+          (json['textBackgroundPadding'] as num?)?.toDouble() ?? 8.0,
+      letterSpacing: (json['letterSpacing'] as num?)?.toDouble() ?? 0.0,
+      lineSpacing: (json['lineSpacing'] as num?)?.toDouble() ?? 1.2,
     );
   }
 }
