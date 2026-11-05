@@ -118,9 +118,24 @@ class _TimelineClipWidgetState extends State<TimelineClipWidget> {
       width: width,
       height: widget.height,
       child: GestureDetector(
-        onTap: () {
+        onTapUp: (details) {
+          final currentPlayhead = controller.playheadMs;
+          int targetMs;
+
+          if (clip.endMs <= currentPlayhead) {
+            // Clicked a layer to the left -> jump to left (clip.startMs)
+            targetMs = clip.startMs;
+          } else if (clip.startMs >= currentPlayhead) {
+            // Clicked a layer to the right -> jump to right (clip.endMs)
+            targetMs = clip.endMs;
+          } else {
+            // Clicked inside active clip: left half jumps to start, right half to end
+            final isLeftHalf = details.localPosition.dx < (width / 2);
+            targetMs = isLeftHalf ? clip.startMs : clip.endMs;
+          }
+
           controller.selectClip(clip.id);
-          controller.seekTo(clip.endMs, snapToBeat: false);
+          controller.seekTo(targetMs, snapToBeat: false);
         },
         child: Container(
           decoration: BoxDecoration(
