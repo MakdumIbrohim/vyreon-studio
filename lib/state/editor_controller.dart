@@ -267,6 +267,100 @@ class EditorController extends ChangeNotifier {
     _autoSave();
   }
 
+  void insertFreezeFrameAtPlayhead({int durationMs = 3000}) {
+    TimelineClip? activePrimary;
+    for (final c in _project.primaryClips) {
+      if (_playheadMs >= c.startMs && _playheadMs < c.endMs) {
+        activePrimary = c;
+        break;
+      }
+    }
+    if (activePrimary == null) return;
+
+    _pushUndo();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final freezeClip = TimelineClip(
+      id: 'freeze_${now}_${activePrimary.id}',
+      name: 'Freeze Frame (${activePrimary.name})',
+      type: activePrimary.type == ClipType.video ? ClipType.image : activePrimary.type,
+      startMs: _playheadMs,
+      durationMs: durationMs,
+      sourceDurationMs: durationMs,
+      assetPath: activePrimary.assetPath,
+      colorValue: activePrimary.colorValue,
+      isPrimary: true,
+      filter: activePrimary.filter,
+    );
+
+    final firstDuration = _playheadMs - activePrimary.startMs;
+    final secondDuration = activePrimary.durationMs - firstDuration;
+
+    final newClips = <TimelineClip>[];
+    for (final c in _project.clips) {
+      if (c.id == activePrimary.id) {
+        if (firstDuration > 200) {
+          newClips.add(activePrimary.copyWith(
+            durationMs: firstDuration,
+            sourceDurationMs: firstDuration,
+          ));
+        }
+        newClips.add(freezeClip);
+        if (secondDuration > 200) {
+          newClips.add(activePrimary.copyWith(
+            id: '${activePrimary.id}_post_freeze_$now',
+            durationMs: secondDuration,
+            sourceInMs: activePrimary.sourceInMs + firstDuration,
+            sourceDurationMs: secondDuration,
+          ));
+        }
+      } else {
+        newClips.add(c);
+      }
+    }
+
+    _project = _project.copyWith(
+      clips: newClips,
+      modifiedAt: DateTime.now(),
+    ).packPrimaryClips();
+    _selectedClipId = freezeClip.id;
+    notifyListeners();
+    _autoSave();
+  }
+
+  void addSnapshotAsLayer({int durationMs = 4000}) {
+    TimelineClip? activePrimary;
+    for (final c in _project.primaryClips) {
+      if (_playheadMs >= c.startMs && _playheadMs < c.endMs) {
+        activePrimary = c;
+        break;
+      }
+    }
+
+    _pushUndo();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final layerClip = TimelineClip(
+      id: 'snapshot_layer_$now',
+      name: 'Snapshot Layer',
+      type: activePrimary?.type == ClipType.video ? ClipType.image : (activePrimary?.type ?? ClipType.color),
+      startMs: _playheadMs,
+      durationMs: durationMs,
+      sourceDurationMs: durationMs,
+      assetPath: activePrimary?.assetPath,
+      colorValue: activePrimary?.colorValue ?? 0xFF00E5FF,
+      isPrimary: false,
+      trackIndex: 1,
+      scale: 0.65,
+    );
+
+    _project = _project.copyWith(
+      clips: [..._project.clips, layerClip],
+      modifiedAt: DateTime.now(),
+    );
+    _selectedClipId = layerClip.id;
+    notifyListeners();
+    _autoSave();
+  }
+
   void trimClipLeft(String clipId) {
     final clip = _project.clips.firstWhere((c) => c.id == clipId);
     if (_playheadMs <= clip.startMs || _playheadMs >= clip.endMs) return;

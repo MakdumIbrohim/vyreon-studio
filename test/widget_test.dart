@@ -266,6 +266,18 @@ void main() {
     expect(envelopedAudio.getEffectiveVolumeAt(1000), closeTo(0.75, 0.01));
     expect(envelopedAudio.getEffectiveVolumeAt(1000, isDucked: true), closeTo(0.15, 0.01));
 
+    // Freeze Frame & Snapshot Layer test
+    final countBefore = controller.project.clips.length;
+    controller.seekTo(1500);
+    controller.insertFreezeFrameAtPlayhead(durationMs: 2500);
+    expect(controller.project.clips.length, greaterThan(countBefore));
+    expect(controller.project.primaryClips.any((c) => c.name.contains('Freeze Frame')), true);
+
+    final secondariesBefore = controller.project.secondaryClips.length;
+    controller.addSnapshotAsLayer(durationMs: 3500);
+    expect(controller.project.secondaryClips.length, secondariesBefore + 1);
+    expect(controller.project.secondaryClips.last.name, 'Snapshot Layer');
+
     controller.dispose();
   });
 }
