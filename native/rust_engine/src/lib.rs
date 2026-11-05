@@ -16,7 +16,7 @@ use std::slice;
 /// Engine version tag
 #[unsafe(no_mangle)]
 pub extern "C" fn vyreon_rust_version() -> *const c_char {
-    c"VyreonStudio-RustCore-v1.0.0".as_ptr()
+    c"VyreonStudio-RustCore-v1.0.1".as_ptr()
 }
 
 /// High-performance audio waveform peak extraction in Rust
