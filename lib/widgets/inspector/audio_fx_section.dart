@@ -159,6 +159,59 @@ class AudioFxSection extends StatelessWidget {
               }).toList(),
             ),
           ),
+
+          const Divider(height: 18, color: AppTheme.divider),
+
+          // Reverb & Acoustic Room Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Reverb (Acoustic Space)',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              Text(
+                clip.reverbPreset.label,
+                style: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.lightGreenAccent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+
+          // Reverb Chips
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: AudioReverbPreset.values.map((rv) {
+                final isSel = clip.reverbPreset == rv;
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: ChoiceChip(
+                    label: Text(
+                      rv.label,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: isSel ? Colors.white : AppTheme.textSecondary,
+                      ),
+                    ),
+                    selected: isSel,
+                    selectedColor: Colors.teal.shade700,
+                    backgroundColor: AppTheme.surfaceVariant,
+                    onSelected: (_) => controller
+                        .updateClip(clip.copyWith(reverbPreset: rv)),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
         ],
       ),
     );

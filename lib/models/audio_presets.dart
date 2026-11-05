@@ -38,3 +38,19 @@ enum VoiceChangerPreset {
     this.description,
   );
 }
+
+enum AudioReverbPreset {
+  none('None', 'Dry natural sound', null),
+  studio('Studio', 'Tightly controlled room reflections', 'aecho=0.8:0.88:40:0.4'),
+  room('Room', 'Small room intimate reverberation', 'aecho=0.8:0.88:60:0.3'),
+  concertHall('Concert Hall', 'Expansive musical hall space', 'aecho=0.8:0.9:1000|1800:0.3|0.2'),
+  cave('Cave', 'Deep subterranean acoustic bounce', 'aecho=0.8:0.7:500|1000:0.4|0.3'),
+  cathedral('Cathedral', 'Majestic vaulted ceiling resonance', 'aecho=0.8:0.9:800|1600|2400:0.3|0.2|0.1'),
+  springReverb('Spring', 'Vintage analog guitar spring bounce', 'aecho=0.8:0.6:20|40:0.6|0.3');
+
+  final String label;
+  final String description;
+  final String? ffmpegFilter;
+
+  const AudioReverbPreset(this.label, this.description, this.ffmpegFilter);
+}

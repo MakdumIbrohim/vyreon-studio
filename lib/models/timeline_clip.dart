@@ -81,6 +81,7 @@ class TimelineClip {
   final bool isDuckingEnabled;
   final double duckingLevel;
   final ClipCropMask cropMask;
+  final AudioReverbPreset reverbPreset;
 
   const TimelineClip({
     required this.id,
@@ -142,6 +143,7 @@ class TimelineClip {
     this.isDuckingEnabled = false,
     this.duckingLevel = 0.25,
     this.cropMask = const ClipCropMask(),
+    this.reverbPreset = AudioReverbPreset.none,
   });
 
   int get endMs => startMs + durationMs;
@@ -320,6 +322,7 @@ class TimelineClip {
     bool? isDuckingEnabled,
     double? duckingLevel,
     ClipCropMask? cropMask,
+    AudioReverbPreset? reverbPreset,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -382,6 +385,7 @@ class TimelineClip {
       isDuckingEnabled: isDuckingEnabled ?? this.isDuckingEnabled,
       duckingLevel: duckingLevel ?? this.duckingLevel,
       cropMask: cropMask ?? this.cropMask,
+      reverbPreset: reverbPreset ?? this.reverbPreset,
     );
   }
 
@@ -445,6 +449,7 @@ class TimelineClip {
     'isDuckingEnabled': isDuckingEnabled,
     'duckingLevel': duckingLevel,
     'cropMask': cropMask.toJson(),
+    'reverbPreset': reverbPreset.name,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -564,6 +569,10 @@ class TimelineClip {
       cropMask: json['cropMask'] != null
           ? ClipCropMask.fromJson(json['cropMask'] as Map<String, dynamic>)
           : const ClipCropMask(),
+      reverbPreset: AudioReverbPreset.values.firstWhere(
+        (e) => e.name == json['reverbPreset'],
+        orElse: () => AudioReverbPreset.none,
+      ),
     );
   }
 }

@@ -317,6 +317,13 @@ void main() {
     final reversedClip = controller.project.clips.firstWhere((c) => c.id == testVideoClip.id);
     expect(reversedClip.name, contains('(Reversed)'));
 
+    // Audio Reverb Preset test
+    final reverbAudio = extractedAudio.copyWith(
+      reverbPreset: AudioReverbPreset.cathedral,
+    );
+    expect(reverbAudio.reverbPreset, AudioReverbPreset.cathedral);
+    expect(reverbAudio.reverbPreset.ffmpegFilter, contains('aecho'));
+
     controller.dispose();
   });
 }
