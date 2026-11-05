@@ -1,0 +1,1 @@
+/home/makdumibrohim/Projects/Mobile-Dev/flutter-projects/vyreon_studio/native/rust_engine/target/release/libvyreon_rust_engine.so: /home/makdumibrohim/Projects/Mobile-Dev/flutter-projects/vyreon_studio/native/rust_engine/src/lib.rs
