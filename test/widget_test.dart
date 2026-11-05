@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vyreon_studio/main.dart';
@@ -498,6 +499,19 @@ Second subtitle line''';
     expect(restoredClip.enhancePreset, AudioEnhancePreset.warmVocal);
 
     controller.updateClip(audioWithDenoise);
+
+    // Rust Engine Color Grading & 3D LUT Test
+    final samplePixels = Uint8List.fromList([100, 100, 100, 255]);
+    final graded = RustEngineService.instance.colorGradeRgba(
+      samplePixels,
+      brightness: 0.2,
+      contrast: 0.1,
+      saturation: 1.2,
+    );
+    if (RustEngineService.instance.isAvailable) {
+      expect(graded, isNotNull);
+      expect(graded![0] > 100, true);
+    }
 
     controller.dispose();
   });

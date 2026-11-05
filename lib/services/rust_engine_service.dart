@@ -1,87 +1,7 @@
 import 'dart:ffi' as ffi;
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:ffi/ffi.dart';
-
-// C Signatures
-typedef _VersionC = ffi.Pointer<Utf8> Function();
-typedef _VersionDart = ffi.Pointer<Utf8> Function();
-
-typedef _WaveformC = ffi.Int32 Function(
-  ffi.Pointer<ffi.Uint8> dataPtr,
-  ffi.Size dataLen,
-  ffi.Size targetSamples,
-  ffi.Pointer<ffi.Float> outPtr,
-);
-typedef _WaveformDart = int Function(
-  ffi.Pointer<ffi.Uint8> dataPtr,
-  int dataLen,
-  int targetSamples,
-  ffi.Pointer<ffi.Float> outPtr,
-);
-
-typedef _BeatPeaksC = ffi.Int32 Function(
-  ffi.Pointer<ffi.Float> peaksPtr,
-  ffi.Size peaksLen,
-  ffi.Uint32 durationMs,
-  ffi.Float thresholdMultiplier,
-  ffi.Pointer<ffi.Uint32> outMsPtr,
-  ffi.Size maxBeats,
-);
-typedef _BeatPeaksDart = int Function(
-  ffi.Pointer<ffi.Float> peaksPtr,
-  int peaksLen,
-  int durationMs,
-  double thresholdMultiplier,
-  ffi.Pointer<ffi.Uint32> outMsPtr,
-  int maxBeats,
-);
-
-typedef _LerpTransformC = ffi.Void Function(
-  ffi.Float t,
-  ffi.Float startScale,
-  ffi.Float endScale,
-  ffi.Float startX,
-  ffi.Float endX,
-  ffi.Float startY,
-  ffi.Float endY,
-  ffi.Pointer<ffi.Float> outScale,
-  ffi.Pointer<ffi.Float> outX,
-  ffi.Pointer<ffi.Float> outY,
-);
-typedef _LerpTransformDart = void Function(
-  double t,
-  double startScale,
-  double endScale,
-  double startX,
-  double endX,
-  double startY,
-  double endY,
-  ffi.Pointer<ffi.Float> outScale,
-  ffi.Pointer<ffi.Float> outX,
-  ffi.Pointer<ffi.Float> outY,
-);
-
-typedef _ChromaC = ffi.Uint8 Function(
-  ffi.Uint8 r,
-  ffi.Uint8 g,
-  ffi.Uint8 b,
-  ffi.Uint8 keyR,
-  ffi.Uint8 keyG,
-  ffi.Uint8 keyB,
-  ffi.Float threshold,
-  ffi.Float smoothness,
-);
-typedef _ChromaDart = int Function(
-  int r,
-  int g,
-  int b,
-  int keyR,
-  int keyG,
-  int keyB,
-  double threshold,
-  double smoothness,
-);
+import 'rust/rust_ffi_bindings.dart';
 
 class RustEngineService {
   static final RustEngineService instance = RustEngineService._internal();
@@ -91,48 +11,30 @@ class RustEngineService {
   }
 
   ffi.DynamicLibrary? _lib;
-  _VersionDart? _versionFn;
-  _WaveformDart? _waveformFn;
-  _BeatPeaksDart? _beatFn;
-  _LerpTransformDart? _lerpFn;
-  _ChromaDart? _chromaFn;
+  VersionDart? _versionFn;
+  WaveformDart? _waveformFn;
+  BeatPeaksDart? _beatFn;
+  LerpTransformDart? _lerpFn;
+  ChromaDart? _chromaFn;
+  ColorGradeDart? _colorGradeFn;
+  ApplyLutDart? _applyLutFn;
 
   bool get isAvailable => _lib != null;
 
   void _initLibrary() {
-    try {
-      if (Platform.isLinux) {
-        final localCandidates = [
-          'native/rust_engine/target/release/libvyreon_rust_engine.so',
-          '${Directory.current.path}/native/rust_engine/target/release/libvyreon_rust_engine.so',
-          'libvyreon_rust_engine.so',
-        ];
-
-        for (final path in localCandidates) {
-          if (File(path).existsSync()) {
-            _lib = ffi.DynamicLibrary.open(path);
-            break;
-          }
-        }
-        _lib ??= ffi.DynamicLibrary.open('libvyreon_rust_engine.so');
-      } else if (Platform.isAndroid) {
-        _lib = ffi.DynamicLibrary.open('libvyreon_rust_engine.so');
+    _lib = RustFfiBindings.loadLibrary();
+    if (_lib != null) {
+      try {
+        _versionFn = _lib!.lookupFunction<VersionC, VersionDart>('vyreon_rust_version');
+        _waveformFn = _lib!.lookupFunction<WaveformC, WaveformDart>('vyreon_extract_waveform_peaks');
+        _beatFn = _lib!.lookupFunction<BeatPeaksC, BeatPeaksDart>('vyreon_detect_beat_peaks');
+        _lerpFn = _lib!.lookupFunction<LerpTransformC, LerpTransformDart>('vyreon_lerp_transform');
+        _chromaFn = _lib!.lookupFunction<ChromaC, ChromaDart>('vyreon_chroma_key_alpha');
+        _colorGradeFn = _lib!.lookupFunction<ColorGradeC, ColorGradeDart>('vyreon_color_grade_rgba');
+        _applyLutFn = _lib!.lookupFunction<ApplyLutC, ApplyLutDart>('vyreon_apply_lut_3d_rgba');
+      } catch (_) {
+        // Partial load fallback
       }
-
-      if (_lib != null) {
-        _versionFn = _lib!
-            .lookupFunction<_VersionC, _VersionDart>('vyreon_rust_version');
-        _waveformFn = _lib!.lookupFunction<_WaveformC, _WaveformDart>(
-            'vyreon_extract_waveform_peaks');
-        _beatFn = _lib!.lookupFunction<_BeatPeaksC, _BeatPeaksDart>(
-            'vyreon_detect_beat_peaks');
-        _lerpFn = _lib!.lookupFunction<_LerpTransformC, _LerpTransformDart>(
-            'vyreon_lerp_transform');
-        _chromaFn = _lib!.lookupFunction<_ChromaC, _ChromaDart>(
-            'vyreon_chroma_key_alpha');
-      }
-    } catch (_) {
-      _lib = null;
     }
   }
 
@@ -249,23 +151,8 @@ class RustEngineService {
     final outY = malloc<ffi.Float>();
 
     try {
-      _lerpFn!(
-        t,
-        startScale,
-        endScale,
-        startX,
-        endX,
-        startY,
-        endY,
-        outScale,
-        outX,
-        outY,
-      );
-      return (
-        scale: outScale.value,
-        offsetX: outX.value,
-        offsetY: outY.value,
-      );
+      _lerpFn!(t, startScale, endScale, startX, endX, startY, endY, outScale, outX, outY);
+      return (scale: outScale.value, offsetX: outX.value, offsetY: outY.value);
     } catch (_) {
       return null;
     } finally {
@@ -288,18 +175,61 @@ class RustEngineService {
   }) {
     if (_chromaFn == null) return null;
     try {
-      return _chromaFn!(
-        r,
-        g,
-        b,
-        keyR,
-        keyG,
-        keyB,
-        threshold,
-        smoothness,
-      );
+      return _chromaFn!(r, g, b, keyR, keyG, keyB, threshold, smoothness);
     } catch (_) {
       return null;
     }
+  }
+
+  /// Rust-accelerated RGBA Color Grading (Brightness, Contrast, Saturation, Temp, Tint)
+  Uint8List? colorGradeRgba(
+    Uint8List pixels, {
+    double brightness = 0.0,
+    double contrast = 0.0,
+    double saturation = 1.0,
+    double temperature = 0.0,
+    double tint = 0.0,
+  }) {
+    if (_colorGradeFn == null || pixels.isEmpty || (pixels.length % 4) != 0) return null;
+
+    final ptr = malloc<ffi.Uint8>(pixels.length);
+    try {
+      final list = ptr.asTypedList(pixels.length);
+      list.setAll(0, pixels);
+      final code = _colorGradeFn!(ptr, pixels.length, brightness, contrast, saturation, temperature, tint);
+      if (code == 0) {
+        return Uint8List.fromList(list);
+      }
+    } catch (_) {
+      return null;
+    } finally {
+      malloc.free(ptr);
+    }
+    return null;
+  }
+
+  /// Rust-accelerated 3D LUT Application
+  Uint8List? applyLut3dRgba(Uint8List pixels, Float32List lutTable, int lutSize, {double intensity = 1.0}) {
+    if (_applyLutFn == null || pixels.isEmpty || lutTable.isEmpty || lutSize < 2) return null;
+
+    final pixPtr = malloc<ffi.Uint8>(pixels.length);
+    final lutPtr = malloc<ffi.Float>(lutTable.length);
+    try {
+      final pixList = pixPtr.asTypedList(pixels.length);
+      pixList.setAll(0, pixels);
+      final lutList = lutPtr.asTypedList(lutTable.length);
+      lutList.setAll(0, lutTable);
+
+      final code = _applyLutFn!(pixPtr, pixels.length, lutPtr, lutSize, intensity);
+      if (code == 0) {
+        return Uint8List.fromList(pixList);
+      }
+    } catch (_) {
+      return null;
+    } finally {
+      malloc.free(pixPtr);
+      malloc.free(lutPtr);
+    }
+    return null;
   }
 }

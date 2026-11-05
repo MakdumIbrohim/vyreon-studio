@@ -1,3 +1,6 @@
+pub mod color_grading;
+pub use color_grading::*;
+
 use std::os::raw::c_char;
 use std::slice;
 
