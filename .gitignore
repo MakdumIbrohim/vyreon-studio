@@ -46,3 +46,12 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Local release build artifacts
+/release-artifacts/
+
+# Rust build artifacts
+target/
+**/target/
+native/rust_engine/target/
+

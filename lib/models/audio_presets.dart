@@ -54,3 +54,29 @@ enum AudioReverbPreset {
 
   const AudioReverbPreset(this.label, this.description, this.ffmpegFilter);
 }
+
+enum AudioDenoisePreset {
+  none('Off', 'No noise suppression', null),
+  mild('Mild Denoise', 'Subtle background hiss reduction', 'afftdn=nr=10:nf=-25'),
+  voiceClarity('Voice Clarity', 'Eliminates room hum & mic rumble', 'highpass=f=80,afftdn=nr=18:nf=-30'),
+  aggressive('Aggressive', 'Heavy noise suppression for outdoor/windy audio', 'highpass=f=100,lowpass=f=12000,afftdn=nr=28:nf=-35');
+
+  final String label;
+  final String description;
+  final String? ffmpegFilter;
+
+  const AudioDenoisePreset(this.label, this.description, this.ffmpegFilter);
+}
+
+enum AudioEnhancePreset {
+  none('Off', 'Natural unprocessed audio', null),
+  warmVocal('Warm Vocal', 'Boost vocal presence & dialogue intelligibility', 'highpass=f=85,equalizer=f=3000:width_type=h:width=1500:g=3.5,compand=.03|.05:1:-60/-60|-24/-12|0/-3:6:0:-90:0.1'),
+  studioBroadcast('Studio Broadcast', 'Radio host punch, compression & presence', 'compand=.01|.02:1:-60/-60|-30/-10|0/-1:4:0:-90:0.05,equalizer=f=120:width_type=h:width=80:g=2.5,equalizer=f=4500:width_type=h:width=2000:g=3'),
+  smartLeveler('Smart Leveler', 'Even out loud & quiet speaking parts', 'speechnorm=e=4:r=0.0001:l=1');
+
+  final String label;
+  final String description;
+  final String? ffmpegFilter;
+
+  const AudioEnhancePreset(this.label, this.description, this.ffmpegFilter);
+}

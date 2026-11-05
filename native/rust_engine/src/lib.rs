@@ -1,10 +1,22 @@
+pub mod color_grading;
+pub mod audio_dsp;
+pub mod bezier;
+pub mod blending;
+pub mod srt_parser;
+
+pub use color_grading::*;
+pub use audio_dsp::*;
+pub use bezier::*;
+pub use blending::*;
+pub use srt_parser::*;
+
 use std::os::raw::c_char;
 use std::slice;
 
 /// Engine version tag
 #[unsafe(no_mangle)]
 pub extern "C" fn vyreon_rust_version() -> *const c_char {
-    c"VyreonStudio-RustCore-v1.0.0".as_ptr()
+    c"VyreonStudio-RustCore-v1.0.1".as_ptr()
 }
 
 /// High-performance audio waveform peak extraction in Rust

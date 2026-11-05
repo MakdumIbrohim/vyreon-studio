@@ -4,7 +4,7 @@ import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import 'time_ruler.dart';
-import 'timeline/timeline_painters.dart';
+import 'timeline/timeline_playhead_widget.dart';
 import 'timeline/timeline_zoom_toolbar.dart';
 import 'timeline/tracks/audio_track_view.dart';
 import 'timeline/tracks/primary_track_view.dart';
@@ -85,13 +85,16 @@ class _TimelineViewState extends State<TimelineView> {
         final primaryClips = project.primaryClips;
         final secondaryClips = project.secondaryClips;
 
-        final videoLayers = secondaryClips
+        final videoLayers =
+            secondaryClips.where((c) => c.type == ClipType.video).toList();
+
+        final imageLayers = secondaryClips
             .where((c) =>
-                c.type == ClipType.video ||
-                c.type == ClipType.image ||
-                c.type == ClipType.color ||
-                c.type == ClipType.sticker)
+                c.type == ClipType.image || c.type == ClipType.color)
             .toList();
+
+        final stickerLayers =
+            secondaryClips.where((c) => c.type == ClipType.sticker).toList();
 
         final textLayers =
             secondaryClips.where((c) => c.type == ClipType.text).toList();
@@ -145,10 +148,34 @@ class _TimelineViewState extends State<TimelineView> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // Time Ruler (Top)
-                                  TimeRuler(
-                                    scale: scale,
-                                    totalDurationMs: totalMs,
-                                    width: totalWidth,
+                                  GestureDetector(
+                                    behavior: HitTestBehavior.opaque,
+                                    onTapDown: (details) {
+                                      final targetMs = _pxToMs(
+                                        details.localPosition.dx,
+                                        scale,
+                                      ).clamp(0, totalMs);
+                                      controller.seekTo(targetMs, snapToBeat: true);
+                                      controller.selectClip(null);
+                                    },
+                                    onHorizontalDragStart: (_) {
+                                      if (controller.isPlaying) controller.pause();
+                                    },
+                                    onHorizontalDragUpdate: (details) {
+                                      final targetMs = _pxToMs(
+                                        details.localPosition.dx,
+                                        scale,
+                                      ).clamp(0, totalMs);
+                                      controller.seekTo(targetMs, snapToBeat: true);
+                                    },
+                                    child: MouseRegion(
+                                      cursor: SystemMouseCursors.click,
+                                      child: TimeRuler(
+                                        scale: scale,
+                                        totalDurationMs: totalMs,
+                                        width: totalWidth,
+                                      ),
+                                    ),
                                   ),
 
                                   const Divider(
@@ -166,66 +193,99 @@ class _TimelineViewState extends State<TimelineView> {
                                   const Divider(
                                       height: 1, color: AppTheme.divider),
 
-                                  // Track 1: Layers Track
-                                  SecondaryTrackView(
-                                    clips: videoLayers,
-                                    scale: scale,
-                                    totalWidth: totalWidth,
-                                    trackLabel: 'LAYERS',
-                                    trackHeight: 38,
-                                    controller: controller,
-                                  ),
+                                  // Track 1: Video Layers
+                                  if (videoLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: videoLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'VIDEO LAYER',
+                                      trackIcon: Icons.videocam,
+                                      trackHeight: 44,
+                                      controller: controller,
+                                    ),
+                                  ],
 
-                                  const Divider(
-                                      height: 1, color: AppTheme.divider),
+                                  // Track 2: Image / Overlay Layers
+                                  if (imageLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: imageLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'IMAGE / OVERLAY',
+                                      trackIcon: Icons.image,
+                                      trackHeight: 44,
+                                      controller: controller,
+                                    ),
+                                  ],
 
-                                  // Track 2: Text Track
-                                  SecondaryTrackView(
-                                    clips: textLayers,
-                                    scale: scale,
-                                    totalWidth: totalWidth,
-                                    trackLabel: 'TEXT',
-                                    trackHeight: 34,
-                                    controller: controller,
-                                  ),
+                                  // Track 3: Sticker / Graphics Track
+                                  if (stickerLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: stickerLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'STICKER',
+                                      trackIcon: Icons.auto_awesome,
+                                      trackHeight: 38,
+                                      controller: controller,
+                                    ),
+                                  ],
 
-                                  const Divider(
-                                      height: 1, color: AppTheme.divider),
+                                  // Track 4: Text Track
+                                  if (textLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: textLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'TEXT',
+                                      trackIcon: Icons.title,
+                                      trackHeight: 34,
+                                      controller: controller,
+                                    ),
+                                  ],
 
-                                  // Track 3: Audio Track
-                                  AudioTrackView(
-                                    clips: audioLayers,
-                                    scale: scale,
-                                    totalWidth: totalWidth,
-                                    controller: controller,
-                                  ),
+                                  // Track 5: Audio Track
+                                  if (audioLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    AudioTrackView(
+                                      clips: audioLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      controller: controller,
+                                    ),
+                                  ],
                                 ],
                               ),
 
-                              // Red Playhead Line
+                              // 1. Non-blocking vertical red needle across full tracks
                               Positioned(
                                 left: playheadX - 1,
                                 top: 0,
                                 bottom: 0,
                                 child: IgnorePointer(
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Container(
-                                        width: 2,
-                                        color: AppTheme.playhead,
-                                      ),
-                                      Positioned(
-                                        top: 0,
-                                        left: -5,
-                                        child: CustomPaint(
-                                          size: const Size(12, 10),
-                                          painter: PlayheadPointerPainter(),
-                                        ),
-                                      ),
-                                    ],
+                                  child: Container(
+                                    width: 2,
+                                    color: AppTheme.playhead,
                                   ),
                                 ),
+                              ),
+
+                              // 2. Interactive Red Playhead Scrubber Handle at top ruler
+                              TimelinePlayheadWidget(
+                                controller: controller,
+                                playheadX: playheadX,
+                                scale: scale,
+                                totalMs: totalMs,
                               ),
                             ],
                           ),

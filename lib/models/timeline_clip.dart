@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/rust_engine_service.dart';
 import 'audio_presets.dart';
 import 'clip_types.dart';
 import 'keyframe.dart';
@@ -83,6 +84,8 @@ class TimelineClip {
   final double duckingLevel;
   final ClipCropMask cropMask;
   final AudioReverbPreset reverbPreset;
+  final AudioDenoisePreset denoisePreset;
+  final AudioEnhancePreset enhancePreset;
   final String textAlign;
   final bool isTextBackgroundEnabled;
   final int textBackgroundColor;
@@ -153,6 +156,8 @@ class TimelineClip {
     this.duckingLevel = 0.25,
     this.cropMask = const ClipCropMask(),
     this.reverbPreset = AudioReverbPreset.none,
+    this.denoisePreset = AudioDenoisePreset.none,
+    this.enhancePreset = AudioEnhancePreset.none,
     this.textAlign = 'center',
     this.isTextBackgroundEnabled = false,
     this.textBackgroundColor = 0x80000000,
@@ -163,6 +168,12 @@ class TimelineClip {
   });
 
   int get endMs => startMs + durationMs;
+
+  bool get isStatic =>
+      type == ClipType.image ||
+      type == ClipType.color ||
+      type == ClipType.text ||
+      type == ClipType.sticker;
 
   Color get color => Color(colorValue);
 
@@ -258,12 +269,28 @@ class TimelineClip {
       final k2 = sorted[i + 1];
       if (relMs >= k1.timeMs && relMs <= k2.timeMs) {
         final span = k2.timeMs - k1.timeMs;
-        final t = span > 0 ? (relMs - k1.timeMs) / span : 0.0;
+        final rawT = span > 0 ? (relMs - k1.timeMs) / span : 0.0;
+        final t = RustEngineService.instance.evaluateBezier(rawT);
+
+        final rustLerp = RustEngineService.instance.lerpTransform(
+          t: t,
+          startScale: k1.scale,
+          endScale: k2.scale,
+          startX: k1.offsetX,
+          endX: k2.offsetX,
+          startY: k1.offsetY,
+          endY: k2.offsetY,
+        );
+
+        final sc = rustLerp?.scale ?? (k1.scale + (k2.scale - k1.scale) * t);
+        final ox = rustLerp?.offsetX ?? (k1.offsetX + (k2.offsetX - k1.offsetX) * t);
+        final oy = rustLerp?.offsetY ?? (k1.offsetY + (k2.offsetY - k1.offsetY) * t);
+
         return InterpolatedTransform(
-          scale: k1.scale + (k2.scale - k1.scale) * t,
+          scale: sc,
           rotation: k1.rotation + (k2.rotation - k1.rotation) * t,
-          offsetX: k1.offsetX + (k2.offsetX - k1.offsetX) * t,
-          offsetY: k1.offsetY + (k2.offsetY - k1.offsetY) * t,
+          offsetX: ox,
+          offsetY: oy,
           opacity: k1.opacity + (k2.opacity - k1.opacity) * t,
         );
       }
@@ -340,6 +367,8 @@ class TimelineClip {
     double? duckingLevel,
     ClipCropMask? cropMask,
     AudioReverbPreset? reverbPreset,
+    AudioDenoisePreset? denoisePreset,
+    AudioEnhancePreset? enhancePreset,
     String? textAlign,
     bool? isTextBackgroundEnabled,
     int? textBackgroundColor,
@@ -411,6 +440,8 @@ class TimelineClip {
       duckingLevel: duckingLevel ?? this.duckingLevel,
       cropMask: cropMask ?? this.cropMask,
       reverbPreset: reverbPreset ?? this.reverbPreset,
+      denoisePreset: denoisePreset ?? this.denoisePreset,
+      enhancePreset: enhancePreset ?? this.enhancePreset,
       textAlign: textAlign ?? this.textAlign,
       isTextBackgroundEnabled:
           isTextBackgroundEnabled ?? this.isTextBackgroundEnabled,
@@ -486,6 +517,8 @@ class TimelineClip {
     'duckingLevel': duckingLevel,
     'cropMask': cropMask.toJson(),
     'reverbPreset': reverbPreset.name,
+    'denoisePreset': denoisePreset.name,
+    'enhancePreset': enhancePreset.name,
     'textAlign': textAlign,
     'isTextBackgroundEnabled': isTextBackgroundEnabled,
     'textBackgroundColor': textBackgroundColor,
@@ -619,6 +652,14 @@ class TimelineClip {
       reverbPreset: AudioReverbPreset.values.firstWhere(
         (e) => e.name == json['reverbPreset'],
         orElse: () => AudioReverbPreset.none,
+      ),
+      denoisePreset: AudioDenoisePreset.values.firstWhere(
+        (e) => e.name == json['denoisePreset'],
+        orElse: () => AudioDenoisePreset.none,
+      ),
+      enhancePreset: AudioEnhancePreset.values.firstWhere(
+        (e) => e.name == json['enhancePreset'],
+        orElse: () => AudioEnhancePreset.none,
       ),
       textAlign: json['textAlign'] as String? ?? 'center',
       isTextBackgroundEnabled:

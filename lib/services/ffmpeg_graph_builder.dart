@@ -1,7 +1,8 @@
 import 'dart:io';
-import '../models/clip_types.dart';
+import 'dart:math';
 import '../models/project.dart';
 import '../models/timeline_clip.dart';
+import 'ffmpeg_audio_pipeline.dart';
 import 'srt_service.dart';
 
 class FfmpegGraphResult {
@@ -51,10 +52,9 @@ class FfmpegGraphBuilder {
     final secondaryClips = project.secondaryClips;
 
     // -------------------------------------------------------------
-    // 1. PRIMARY VIDEO CLIPS
+    // 1. PRIMARY VIDEO CLIPS (Normalized with fps & yuv420p for xfade)
     // -------------------------------------------------------------
     final primaryVideoLabels = <String>[];
-    final audioLabels = <String>[];
 
     for (final clip in primaryClips) {
       final durSec = (clip.durationMs / 1000.0).toStringAsFixed(3);
@@ -78,37 +78,109 @@ class FfmpegGraphBuilder {
 
       final label = 'v_prim_$inputIdx';
       filterParts.add(
-          '[$inputIdx:v]scale=$width:$height:force_original_aspect_ratio=decrease,pad=$width:$height:(ow-iw)/2:(oh-ih)/2,setsar=1[$label];');
+          '[$inputIdx:v]scale=$width:$height:force_original_aspect_ratio=decrease,pad=$width:$height:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=$fps,format=yuv420p[$label];');
       primaryVideoLabels.add('[$label]');
       inputIdx++;
     }
 
-    // Concatenate primary clips into base video stream
+    // Chained xfade or concat for primary clips
     String currentVideoHead = 'base_v';
-    if (primaryVideoLabels.length == 1) {
-      currentVideoHead = primaryVideoLabels.first.replaceAll(RegExp(r'[\[\]]'), '');
+    if (primaryVideoLabels.isEmpty) {
+      final hex = _colorToHex(0xFF000000);
+      args.addAll([
+        '-f',
+        'lavfi',
+        '-i',
+        'color=c=$hex:s=${width}x$height:d=1.0',
+      ]);
+      filterParts
+          .add('[$inputIdx:v]fps=$fps,format=yuv420p[$currentVideoHead];');
+      inputIdx++;
+    } else if (primaryVideoLabels.length == 1) {
+      currentVideoHead =
+          primaryVideoLabels.first.replaceAll(RegExp(r'[\[\]]'), '');
     } else {
-      filterParts.add(
-          '${primaryVideoLabels.join('')}concat=n=${primaryVideoLabels.length}:v=1:a=0[$currentVideoHead];');
+      final hasAnyTransition = primaryClips
+          .skip(1)
+          .any((c) => c.transition != TransitionType.none);
+
+      if (!hasAnyTransition) {
+        filterParts.add(
+            '${primaryVideoLabels.join('')}concat=n=${primaryVideoLabels.length}:v=1:a=0[$currentVideoHead];');
+      } else {
+        String prevHead =
+            primaryVideoLabels[0].replaceAll(RegExp(r'[\[\]]'), '');
+        double accumulatedDurationSec = primaryClips[0].durationMs / 1000.0;
+
+        for (int i = 1; i < primaryClips.length; i++) {
+          final clip = primaryClips[i];
+          final nextLabel = primaryVideoLabels[i];
+          final nextDurSec = clip.durationMs / 1000.0;
+          final stepHead =
+              i == primaryClips.length - 1 ? currentVideoHead : 'v_step_$i';
+
+          if (clip.transition != TransitionType.none) {
+            final transName = switch (clip.transition) {
+              TransitionType.fade => 'fade',
+              TransitionType.wipeLeft => 'wipeleft',
+              TransitionType.slideUp => 'slideup',
+              TransitionType.zoom => 'zoomin',
+              TransitionType.none => 'fade',
+            };
+
+            final maxTrans = (clip.transitionDurationMs / 1000.0)
+                .clamp(0.1, min(accumulatedDurationSec, nextDurSec) * 0.8);
+            final offset = max(0.0, accumulatedDurationSec - maxTrans);
+            final durStr = maxTrans.toStringAsFixed(3);
+            final offsetStr = offset.toStringAsFixed(3);
+
+            filterParts.add(
+                '[$prevHead]$nextLabel xfade=transition=$transName:duration=$durStr:offset=$offsetStr[$stepHead];');
+            accumulatedDurationSec = offset + nextDurSec;
+          } else {
+            filterParts
+                .add('[$prevHead]$nextLabel concat=n=2:v=1:a=0[$stepHead];');
+            accumulatedDurationSec += nextDurSec;
+          }
+          prevHead = stepHead;
+        }
+      }
     }
 
     // -------------------------------------------------------------
-    // 2. SECONDARY OVERLAY LAYERS (Video, Image, Sticker)
+    // 2. SECONDARY OVERLAY LAYERS (Video, Image, Sticker, Color)
     // -------------------------------------------------------------
     int overlayCounter = 0;
     for (final layer in secondaryClips) {
       if (layer.type == ClipType.video ||
           layer.type == ClipType.image ||
-          layer.type == ClipType.sticker) {
-        if (layer.assetPath != null && File(layer.assetPath!).existsSync()) {
-          final durSec = (layer.durationMs / 1000.0).toStringAsFixed(3);
+          layer.type == ClipType.sticker ||
+          layer.type == ClipType.color) {
+        final durSec = (layer.durationMs / 1000.0).toStringAsFixed(3);
+        bool hasValidSource = false;
+
+        if (layer.type == ClipType.color || layer.assetPath == null) {
+          final hex = _colorToHex(layer.colorValue);
+          final colW = (width * layer.scale).round().clamp(16, width * 2);
+          final colH = (height * layer.scale).round().clamp(16, height * 2);
+          args.addAll([
+            '-f',
+            'lavfi',
+            '-i',
+            'color=c=$hex:s=${colW}x$colH:d=$durSec',
+          ]);
+          hasValidSource = true;
+        } else if (File(layer.assetPath!).existsSync()) {
           if (layer.type == ClipType.image || layer.type == ClipType.sticker) {
             args.addAll(['-loop', '1', '-t', durSec, '-i', layer.assetPath!]);
           } else {
             final inSec = (layer.sourceInMs / 1000.0).toStringAsFixed(3);
             args.addAll(['-ss', inSec, '-t', durSec, '-i', layer.assetPath!]);
           }
+          hasValidSource = true;
+        }
 
+        if (hasValidSource) {
           final rawLayerLabel = 'layer_raw_$overlayCounter';
           final filterChain = <String>[];
 
@@ -123,23 +195,72 @@ class FfmpegGraphBuilder {
                 'colorkey=$keyHex:${layer.chromaThreshold}:${layer.chromaSmoothness}');
           }
 
-          // Opacity
-          if (layer.opacity < 1.0) {
-            filterChain.add('format=rgba,colorchannelmixer=aa=${layer.opacity}');
+          // Opacity & In/Out Fade Animations
+          final totalLayerSec = layer.durationMs / 1000.0;
+          final inDurSec = (layer.inDurationMs / 1000.0)
+              .clamp(0.1, max(0.1, totalLayerSec * 0.45));
+          final outDurSec = (layer.outDurationMs / 1000.0)
+              .clamp(0.1, max(0.1, totalLayerSec * 0.45));
+
+          final hasInFade = (layer.inAnimation == InAnimationType.fadeIn ||
+                  layer.inAnimation == InAnimationType.pop ||
+                  layer.inAnimation == InAnimationType.scaleUp) &&
+              layer.inDurationMs > 0;
+          final hasOutFade = (layer.outAnimation == OutAnimationType.fadeOut ||
+                  layer.outAnimation == OutAnimationType.popDown ||
+                  layer.outAnimation == OutAnimationType.scaleDown) &&
+              layer.outDurationMs > 0;
+
+          if (hasInFade || hasOutFade || layer.opacity < 1.0) {
+            filterChain.add('format=rgba');
+            if (layer.opacity < 1.0) {
+              filterChain.add('colorchannelmixer=aa=${layer.opacity}');
+            }
+            if (hasInFade) {
+              filterChain.add(
+                  'fade=t=in:st=0:d=${inDurSec.toStringAsFixed(3)}:alpha=1');
+            }
+            if (hasOutFade) {
+              final outStartSec =
+                  max(0.0, totalLayerSec - outDurSec).toStringAsFixed(3);
+              filterChain.add(
+                  'fade=t=out:st=$outStartSec:d=${outDurSec.toStringAsFixed(3)}:alpha=1');
+            }
           }
 
           filterParts.add(
               '[$inputIdx:v]${filterChain.join(',')}[$rawLayerLabel];');
 
-          // Overlay onto current video head with positioning & timing
+          // Overlay positioning, timing & motion in-animations
           final nextHead = 'v_overlay_$overlayCounter';
           final startSec = (layer.startMs / 1000.0).toStringAsFixed(3);
           final endSec = (layer.endMs / 1000.0).toStringAsFixed(3);
+          final inEndSec =
+              ((layer.startMs + layer.inDurationMs) / 1000.0).toStringAsFixed(3);
 
-          final posX =
-              '(W-w)/2+(${layer.offsetX.toStringAsFixed(3)}*(W/2))';
-          final posY =
-              '(H-h)/2+(${layer.offsetY.toStringAsFixed(3)}*(H/2))';
+          final baseX = '(W-w)/2+(${layer.offsetX.toStringAsFixed(3)}*(W/2))';
+          final baseY = '(H-h)/2+(${layer.offsetY.toStringAsFixed(3)}*(H/2))';
+
+          String posX = baseX;
+          String posY = baseY;
+
+          if (layer.inAnimation == InAnimationType.slideRight &&
+              layer.inDurationMs > 0) {
+            posX =
+                'if(lte(t,$inEndSec),$baseX-W*(1-(t-$startSec)/${inDurSec.toStringAsFixed(3)}),$baseX)';
+          } else if (layer.inAnimation == InAnimationType.slideLeft &&
+              layer.inDurationMs > 0) {
+            posX =
+                'if(lte(t,$inEndSec),$baseX+W*(1-(t-$startSec)/${inDurSec.toStringAsFixed(3)}),$baseX)';
+          } else if (layer.inAnimation == InAnimationType.slideUp &&
+              layer.inDurationMs > 0) {
+            posY =
+                'if(lte(t,$inEndSec),$baseY+H*(1-(t-$startSec)/${inDurSec.toStringAsFixed(3)}),$baseY)';
+          } else if (layer.inAnimation == InAnimationType.slideDown &&
+              layer.inDurationMs > 0) {
+            posY =
+                'if(lte(t,$inEndSec),$baseY-H*(1-(t-$startSec)/${inDurSec.toStringAsFixed(3)}),$baseY)';
+          }
 
           filterParts.add(
               '[$currentVideoHead][$rawLayerLabel]overlay=x=\'$posX\':y=\'$posY\':enable=\'between(t,$startSec,$endSec)\'[$nextHead];');
@@ -152,7 +273,7 @@ class FfmpegGraphBuilder {
     }
 
     // -------------------------------------------------------------
-    // 3. TEXT CLIPS (drawtext)
+    // 3. TEXT CLIPS (drawtext with alpha fade in/out)
     // -------------------------------------------------------------
     int textCounter = 0;
     for (final textClip in secondaryClips) {
@@ -179,6 +300,13 @@ class FfmpegGraphBuilder {
           "y='$posY'",
           "enable='between(t,$startSec,$endSec)'",
         ];
+
+        if (textClip.inAnimation == InAnimationType.fadeIn &&
+            textClip.inDurationMs > 0) {
+          final inDur = (textClip.inDurationMs / 1000.0).toStringAsFixed(3);
+          drawtextParams
+              .add("alpha='if(lt(t,$startSec+$inDur),(t-$startSec)/$inDur,1)'");
+        }
 
         if (textClip.isTextOutlineEnabled) {
           drawtextParams.add(
@@ -222,77 +350,18 @@ class FfmpegGraphBuilder {
     // -------------------------------------------------------------
     // 5. AUDIO TRACKS & MASTER MIXER
     // -------------------------------------------------------------
-    final audioClips =
-        secondaryClips.where((c) => c.type == ClipType.audio).toList();
-
-    int audioCounter = 0;
-    for (final audio in audioClips) {
-      if (audio.assetPath != null && File(audio.assetPath!).existsSync()) {
-        final durSec = (audio.durationMs / 1000.0).toStringAsFixed(3);
-        final inSec = (audio.sourceInMs / 1000.0).toStringAsFixed(3);
-        args.addAll(['-ss', inSec, '-t', durSec, '-i', audio.assetPath!]);
-
-        final label = 'a_track_$audioCounter';
-        final delayMs = audio.startMs;
-        final vol = audio.isMuted ? 0.0 : audio.volume;
-
-        filterParts.add(
-            '[$inputIdx:a]adelay=$delayMs|$delayMs,volume=$vol[$label];');
-        audioLabels.add('[$label]');
-
-        inputIdx++;
-        audioCounter++;
-      }
-    }
-
-    String finalAudioHead = 'out_a';
-    final settings = project.settings;
-
-    if (audioLabels.isNotEmpty) {
-      String mixedLabel = 'a_mixed';
-      if (audioLabels.length == 1) {
-        mixedLabel = audioLabels.first.replaceAll(RegExp(r'[\[\]]'), '');
-      } else {
-        filterParts.add(
-            '${audioLabels.join('')}amix=inputs=${audioLabels.length}:duration=longest:dropout_transition=2[$mixedLabel];');
-      }
-
-      // Master volume, Fade in, Fade out
-      final audioFilters = <String>[];
-      final masterVol =
-          settings.isMasterMuted ? 0.0 : settings.masterVolume.clamp(0.0, 2.0);
-      audioFilters.add('volume=$masterVol');
-
-      if (settings.audioFadeInDuration > 0) {
-        audioFilters.add('afade=t=in:ss=0:d=${settings.audioFadeInDuration}');
-      }
-
-      final totalSec = project.totalDurationMs / 1000.0;
-      if (settings.audioFadeOutDuration > 0 && totalSec > 0) {
-        final fadeOutStart = (totalSec - settings.audioFadeOutDuration).clamp(0.0, totalSec);
-        audioFilters.add('afade=t=out:st=${fadeOutStart.toStringAsFixed(3)}:d=${settings.audioFadeOutDuration}');
-      }
-
-      filterParts.add('[$mixedLabel]${audioFilters.join(',')}[$finalAudioHead];');
-    } else {
-      // Clean silence generator for audio compatibility
-      args.addAll([
-        '-f',
-        'lavfi',
-        '-i',
-        'anullsrc=channel_layout=stereo:sample_rate=44100',
-      ]);
-      final silenceLabel = 'a_silence';
-      final totalSec = (project.totalDurationMs / 1000.0).toStringAsFixed(3);
-      filterParts.add('[$inputIdx:a]atrim=0:$totalSec[$silenceLabel];');
-      finalAudioHead = silenceLabel;
-    }
+    final audioResult = FfmpegAudioPipeline.build(
+      project: project,
+      args: args,
+      filterParts: filterParts,
+      startInputIdx: inputIdx,
+    );
 
     return FfmpegGraphResult(
       inputArgs: args,
       filterComplex: filterParts.join(''),
       videoMap: currentVideoHead,
-      audioMap: finalAudioHead,
+      audioMap: audioResult.finalAudioHead,
       tempFilesToClean: tempFiles,
     );
   }

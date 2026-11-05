@@ -28,7 +28,13 @@ class DirectManipulationOverlay extends StatelessWidget {
         double boxH = 110.0;
         if (layer.type == ClipType.text) {
           boxW = 200.0;
-          boxH = 60.0;
+          boxH = 50.0;
+        } else if (layer.type == ClipType.sticker) {
+          boxW = 100.0;
+          boxH = 100.0;
+        } else if (layer.type == ClipType.color) {
+          boxW = 140.0;
+          boxH = 140.0;
         }
 
         return Positioned.fill(

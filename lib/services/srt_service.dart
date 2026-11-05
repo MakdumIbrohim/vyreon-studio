@@ -1,7 +1,29 @@
+import 'dart:convert';
 import '../models/subtitle_entry.dart';
+import 'rust_engine_service.dart';
 
 class SrtService {
   static List<SubtitleEntry> parseSrt(String content) {
+    // 1. Accelerated native Rust SRT Parser
+    final rustJson = RustEngineService.instance.parseSrtToJson(content);
+    if (rustJson != null && rustJson.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rustJson) as List<dynamic>;
+        return decoded.map((item) {
+          final map = item as Map<String, dynamic>;
+          return SubtitleEntry(
+            index: map['index'] as int? ?? 1,
+            startMs: map['startMs'] as int? ?? 0,
+            endMs: map['endMs'] as int? ?? 0,
+            text: (map['text'] as String? ?? '').replaceAll(r'\n', '\n'),
+          );
+        }).toList();
+      } catch (_) {
+        // Fallback to Dart parser
+      }
+    }
+
+    // 2. Pure Dart VM fallback
     final entries = <SubtitleEntry>[];
     final normalized = content.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
     final blocks = normalized.split('\n\n');

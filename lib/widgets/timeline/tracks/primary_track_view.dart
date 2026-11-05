@@ -42,46 +42,67 @@ class PrimaryTrackView extends StatelessWidget {
               ),
             ),
           ),
-          for (int i = 0; i < clips.length; i++) ...[
+          // 1. All Clips rendered first
+          for (int i = 0; i < clips.length; i++)
             TimelineClipWidget(
               clip: clips[i],
               scale: scale,
               height: 52,
               controller: controller,
             ),
-            if (i < clips.length - 1)
-              Positioned(
-                left: _msToPx(clips[i].endMs, scale) - 9,
-                top: 17,
-                child: GestureDetector(
-                  onTap: () => onEditTransition(clips[i + 1]),
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: clips[i + 1].transition != TransitionType.none
-                          ? AppTheme.primary
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          blurRadius: 4,
+
+          // 2. Transition Buttons rendered ON TOP of clips, centered at the seam
+          for (int i = 0; i < clips.length - 1; i++) ...[
+            Builder(
+              builder: (context) {
+                final hasTransition =
+                    clips[i + 1].transition != TransitionType.none;
+
+                return Positioned(
+                  left: _msToPx(clips[i].endMs, scale) - 11,
+                  top: 17,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => onEditTransition(clips[i + 1]),
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: hasTransition
+                            ? AppTheme.primary
+                            : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: hasTransition
+                              ? Colors.white.withValues(alpha: 0.9)
+                              : const Color(0xFF64748B),
+                          width: 1.5,
                         ),
-                      ],
-                    ),
-                    child: Icon(
-                      clips[i + 1].transition != TransitionType.none
-                          ? clips[i + 1].transition.icon
-                          : Icons.change_circle,
-                      size: 13,
-                      color: clips[i + 1].transition != TransitionType.none
-                          ? Colors.white
-                          : const Color(0xFF1E293B),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Icon(
+                          hasTransition
+                              ? clips[i + 1].transition.icon
+                              : Icons.change_circle,
+                          size: 14,
+                          color: hasTransition
+                              ? Colors.white
+                              : const Color(0xFF1E293B),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
+            ),
           ],
         ],
       ),

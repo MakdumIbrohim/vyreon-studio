@@ -145,40 +145,44 @@ class _EditorScreenState extends State<EditorScreen> {
 
         // Middle: Wheel or Inspector (collapsible / compact)
         if (!_isFullscreenPreview)
-          Container(
-            height: 195,
-            decoration: const BoxDecoration(
-              color: AppTheme.surface,
-              border: Border(
-                top: BorderSide(color: AppTheme.divider),
-                bottom: BorderSide(color: AppTheme.divider),
-              ),
-            ),
-            child: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) {
-                final selected = _controller.selectedClip;
-                if (selected != null) {
-                  return ClipInspector(
-                    controller: _controller,
-                    clip: selected,
-                  );
-                }
-                return MediaWheel(
-                  controller: _controller,
-                  onOpenMedia: () => _openMediaBrowser(isPrimary: true),
-                  onOpenLayer: () => _openMediaBrowser(isPrimary: false),
-                  onOpenAudio: _openAudioBrowser,
-                  onOpenRecord: _recordVoiceover,
-                );
-              },
-            ),
+          ListenableBuilder(
+            listenable: _controller,
+            builder: (context, _) {
+              final selected = _controller.selectedClip;
+              final isInspector = selected != null;
+              final panelHeight = isInspector ? 240.0 : 185.0;
+
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                height: panelHeight,
+                decoration: const BoxDecoration(
+                  color: AppTheme.surface,
+                  border: Border(
+                    top: BorderSide(color: AppTheme.divider),
+                    bottom: BorderSide(color: AppTheme.divider),
+                  ),
+                ),
+                child: isInspector
+                    ? ClipInspector(
+                        controller: _controller,
+                        clip: selected,
+                      )
+                    : MediaWheel(
+                        controller: _controller,
+                        onOpenMedia: () => _openMediaBrowser(isPrimary: true),
+                        onOpenLayer: () => _openMediaBrowser(isPrimary: false),
+                        onOpenAudio: _openAudioBrowser,
+                        onOpenRecord: _recordVoiceover,
+                      ),
+              );
+            },
           ),
 
         // Lower: Timeline
         if (!_isFullscreenPreview)
           Expanded(
-            flex: 4,
+            flex: 5,
             child: TimelineView(controller: _controller),
           ),
       ],

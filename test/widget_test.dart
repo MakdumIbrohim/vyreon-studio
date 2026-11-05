@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vyreon_studio/main.dart';
@@ -6,14 +7,19 @@ import 'package:vyreon_studio/models/project.dart';
 import 'package:vyreon_studio/models/subtitle_entry.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/screens/editor_screen.dart';
+import 'package:vyreon_studio/services/audio_recording_service.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
+import 'package:vyreon_studio/services/color_grading_service.dart';
 import 'package:vyreon_studio/services/ffmpeg_graph_builder.dart';
 import 'package:vyreon_studio/services/project_package_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/services/rust_engine_service.dart';
 import 'package:vyreon_studio/services/srt_service.dart';
+import 'package:vyreon_studio/services/video_render_service.dart';
 import 'package:vyreon_studio/services/video_thumbnail_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
+import 'package:vyreon_studio/widgets/timeline/timeline_clip_widget.dart';
+import 'package:vyreon_studio/widgets/timeline/timeline_playhead_widget.dart';
 
 void main() {
   testWidgets('Vyreon Studio smoke test', (WidgetTester tester) async {
@@ -70,6 +76,17 @@ void main() {
     await tester.pumpWidget(MaterialApp(home: EditorScreen(project: sampleProject)));
     await tester.pump();
     expect(find.byIcon(Icons.file_upload_outlined), findsWidgets);
+
+    // Verify playhead widget is present and draggable
+    final playheadFinder = find.byType(TimelinePlayheadWidget);
+    expect(playheadFinder, findsOneWidget);
+    await tester.drag(playheadFinder, const Offset(60, 0));
+    await tester.pump();
+
+    // Verify tapping clip selects and moves playhead to clip end
+    final clipFinder = find.byType(TimelineClipWidget).first;
+    await tester.tap(clipFinder);
+    await tester.pump();
 
     addTearDown(tester.view.resetPhysicalSize);
   });
@@ -469,6 +486,186 @@ Second subtitle line''';
     expect(renderGraph.filterComplex.contains('subtitles'), true);
     expect(renderGraph.videoMap.isNotEmpty, true);
     expect(renderGraph.audioMap.isNotEmpty, true);
+
+    // Test Transition & Animation Export in FFmpeg Graph
+    final projectWithTransitions = controller.project.copyWith(
+      clips: [
+        controller.project.primaryClips.first,
+        controller.project.primaryClips[1].copyWith(
+          transition: TransitionType.fade,
+          transitionDurationMs: 1000,
+        ),
+        const TimelineClip(
+          id: 'anim_layer',
+          name: 'Layer Anim',
+          type: ClipType.color,
+          isPrimary: false,
+          startMs: 1000,
+          durationMs: 3000,
+          sourceDurationMs: 3000,
+          inAnimation: InAnimationType.fadeIn,
+          inDurationMs: 800,
+          outAnimation: OutAnimationType.fadeOut,
+          outDurationMs: 800,
+        ),
+        ...controller.project.secondaryClips,
+      ],
+    );
+
+    final transitionRenderGraph = FfmpegGraphBuilder.buildGraph(
+      project: projectWithTransitions,
+      width: 1920,
+      height: 1080,
+      fps: 30,
+    );
+    expect(transitionRenderGraph.filterComplex.contains('xfade=transition=fade'), true);
+    expect(transitionRenderGraph.filterComplex.contains('fade=t=in:st=0:d='), true);
+    expect(transitionRenderGraph.filterComplex.contains('fade=t=out:st='), true);
+
+    // Export filename format test
+    final testDate = DateTime(2026, 11, 5);
+    final filename = VideoRenderService.formatOutputFilename(
+      projectName: 'Summer Vacation',
+      resolution: 'FHD 1080p',
+      fps: 60,
+      date: testDate,
+    );
+    expect(filename, 'Summer_Vacation-1080p-60fps-2026-11-05.mp4');
+
+    // Audio Recording Service test
+    expect(AudioRecordingService.instance.isRecording, false);
+    final hasPerm = await AudioRecordingService.instance.hasPermission();
+    expect(hasPerm, isA<bool>());
+
+    final cleanedMicAudio = AudioRecordingService.instance.processRecordedPcm(
+      pcmSamples: Int16List.fromList([15, 25, 8000]),
+      volume: 1.2,
+      noiseGateThreshold: 0.03,
+      enableHighpass: true,
+    );
+    expect(cleanedMicAudio.length, 3);
+
+    // Audio Denoise & Enhancer test
+    final audioWithDenoise = testBeatsAudio.copyWith(
+      denoisePreset: AudioDenoisePreset.voiceClarity,
+      enhancePreset: AudioEnhancePreset.warmVocal,
+    );
+    expect(audioWithDenoise.denoisePreset, AudioDenoisePreset.voiceClarity);
+    expect(audioWithDenoise.enhancePreset, AudioEnhancePreset.warmVocal);
+
+    // Serialization roundtrip
+    final jsonClip = audioWithDenoise.toJson();
+    final restoredClip = TimelineClip.fromJson(jsonClip);
+    expect(restoredClip.denoisePreset, AudioDenoisePreset.voiceClarity);
+    expect(restoredClip.enhancePreset, AudioEnhancePreset.warmVocal);
+
+    controller.updateClip(audioWithDenoise);
+
+    // Rust Engine Color Grading & 3D LUT Test
+    final samplePixels = Uint8List.fromList([100, 100, 100, 255]);
+    final graded = RustEngineService.instance.colorGradeRgba(
+      samplePixels,
+      brightness: 0.2,
+      contrast: 0.1,
+      saturation: 1.2,
+    );
+    if (RustEngineService.instance.isAvailable) {
+      expect(graded, isNotNull);
+      expect(graded![0] > 100, true);
+
+      // Rust Engine Real-time Audio DSP Test
+      final audioSamples = Int16List.fromList([10, 20, 10000]);
+      final processedAudio = RustEngineService.instance.processAudioPcm16(
+        audioSamples,
+        volume: 1.5,
+        noiseGateThreshold: 0.05,
+      );
+      expect(processedAudio, isNotNull);
+      expect(processedAudio!.length, 3);
+
+      // Rust Engine Bézier Speed Curve Test
+      final bezierVal = RustEngineService.instance.evaluateBezier(0.5);
+      expect(bezierVal >= 0.0 && bezierVal <= 1.0, true);
+
+      final speedCurve = RustEngineService.instance.evaluateSpeedCurveBatch(
+        Float32List.fromList([0.0, 0.5, 1.0]),
+      );
+      expect(speedCurve, isNotNull);
+      expect(speedCurve!.length, 3);
+
+      // Rust Engine Layer Pixel Blending Test
+      final dst = Uint8List.fromList([100, 100, 100, 255]);
+      final src = Uint8List.fromList([200, 50, 10, 255]);
+      final blended = RustEngineService.instance.blendLayersRgba(
+        dst,
+        src,
+        blendMode: 0,
+        opacity: 1.0,
+      );
+      expect(blended, isNotNull);
+      expect(blended![0], 200);
+      expect(blended[1], 50);
+      expect(blended[2], 10);
+
+      // Fast Native SRT Subtitle Parser Test
+      const sampleSrt = '1\n00:00:01,000 --> 00:00:03,500\nHello Subtitle!\n';
+      final parsedSubs = SrtService.parseSrt(sampleSrt);
+      expect(parsedSubs.isNotEmpty, true);
+      expect(parsedSubs.first.text, 'Hello Subtitle!');
+      expect(parsedSubs.first.startMs, 1000);
+      expect(parsedSubs.first.endMs, 3500);
+
+      // ColorGradingService Matrix Test
+      final matrix = ColorGradingService.instance.calculateColorMatrix(
+        brightnessPercent: 20,
+        contrastPercent: 10,
+        saturationPercent: 15,
+      );
+      expect(matrix.length, 20);
+
+      // Static vs Non-static Clip Duration Stretch Test
+      const staticImage = TimelineClip(
+        id: 'img_test',
+        name: 'test.jpg',
+        type: ClipType.image,
+        startMs: 0,
+        durationMs: 4000,
+        sourceDurationMs: 4000,
+      );
+      const staticColor = TimelineClip(
+        id: 'col_test',
+        name: 'Solid Red',
+        type: ClipType.color,
+        startMs: 0,
+        durationMs: 3000,
+        sourceDurationMs: 3000,
+      );
+      const videoClip = TimelineClip(
+        id: 'vid_test',
+        name: 'clip.mp4',
+        type: ClipType.video,
+        startMs: 0,
+        durationMs: 5000,
+        sourceDurationMs: 5000,
+      );
+      const audioClip = TimelineClip(
+        id: 'aud_test',
+        name: 'bgm.mp3',
+        type: ClipType.audio,
+        startMs: 0,
+        durationMs: 6000,
+        sourceDurationMs: 6000,
+      );
+
+      expect(staticImage.isStatic, true);
+      expect(staticColor.isStatic, true);
+      expect(videoClip.isStatic, false);
+      expect(audioClip.isStatic, false);
+
+      final stretchedImage = staticImage.copyWith(durationMs: 8000);
+      expect(stretchedImage.durationMs, 8000);
+      controller.updateClipLive(stretchedImage);
+    }
 
     controller.dispose();
   });

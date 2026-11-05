@@ -9,6 +9,7 @@ class SecondaryTrackView extends StatelessWidget {
   final double scale;
   final double totalWidth;
   final String trackLabel;
+  final IconData? trackIcon;
   final double trackHeight;
   final EditorController controller;
 
@@ -18,6 +19,7 @@ class SecondaryTrackView extends StatelessWidget {
     required this.scale,
     required this.totalWidth,
     required this.trackLabel,
+    this.trackIcon,
     required this.trackHeight,
     required this.controller,
   });
@@ -33,13 +35,27 @@ class SecondaryTrackView extends StatelessWidget {
           Positioned(
             left: 8,
             top: 2,
-            child: Text(
-              trackLabel,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textMuted.withValues(alpha: 0.25),
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (trackIcon != null) ...[
+                  Icon(
+                    trackIcon,
+                    size: 10,
+                    color: AppTheme.textMuted.withValues(alpha: 0.4),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+                Text(
+                  trackLabel,
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textMuted.withValues(alpha: 0.4),
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ],
             ),
           ),
           for (final clip in clips)
