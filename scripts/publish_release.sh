@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+export PATH="$PATH:$HOME/Development/flutter/bin:$HOME/development/flutter/bin:$HOME/.cargo/bin"
+
 # Change directory to project root
 cd "$(dirname "$0")/.."
 
