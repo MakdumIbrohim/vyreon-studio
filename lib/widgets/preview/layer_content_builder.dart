@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../models/timeline_clip.dart';
+import '../../services/color_grading_service.dart';
 import '../../services/video_thumbnail_service.dart';
 import 'preview_placeholders.dart';
 
@@ -124,9 +125,10 @@ class LayerContentBuilder {
   static Widget _buildMediaContent(TimelineClip layer, int playheadMs) {
     final file = layer.assetPath != null ? File(layer.assetPath!) : null;
 
+    Widget content;
     if (file != null && file.existsSync()) {
       if (layer.type == ClipType.image) {
-        return Image.file(
+        content = Image.file(
           file,
           fit: BoxFit.contain,
           errorBuilder: (_, _, _) =>
@@ -134,7 +136,7 @@ class LayerContentBuilder {
         );
       } else if (layer.type == ClipType.video) {
         final relMs = (playheadMs - layer.startMs).clamp(0, layer.durationMs);
-        return FutureBuilder<File?>(
+        content = FutureBuilder<File?>(
           future: VideoThumbnailService()
               .getThumbnailFile(layer.assetPath!, atMs: relMs),
           builder: (context, snapshot) {
@@ -151,8 +153,32 @@ class LayerContentBuilder {
             return PreviewPlaceholders.buildLayerPlaceholder(layer);
           },
         );
+      } else {
+        content = PreviewPlaceholders.buildLayerPlaceholder(layer);
       }
+    } else {
+      content = PreviewPlaceholders.buildLayerPlaceholder(layer);
     }
-    return PreviewPlaceholders.buildLayerPlaceholder(layer);
+
+    return _applyColorGrading(content, layer);
+  }
+
+  static Widget _applyColorGrading(Widget child, TimelineClip layer) {
+    if (layer.brightness == 0.0 &&
+        layer.contrast == 0.0 &&
+        layer.saturation == 0.0) {
+      return child;
+    }
+
+    final matrix = ColorGradingService.instance.calculateColorMatrix(
+      brightnessPercent: layer.brightness,
+      contrastPercent: layer.contrast,
+      saturationPercent: layer.saturation,
+    );
+
+    return ColorFiltered(
+      colorFilter: ColorFilter.matrix(matrix),
+      child: child,
+    );
   }
 }

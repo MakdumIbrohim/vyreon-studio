@@ -9,6 +9,7 @@ import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/screens/editor_screen.dart';
 import 'package:vyreon_studio/services/audio_recording_service.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
+import 'package:vyreon_studio/services/color_grading_service.dart';
 import 'package:vyreon_studio/services/ffmpeg_graph_builder.dart';
 import 'package:vyreon_studio/services/project_package_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
@@ -561,6 +562,14 @@ Second subtitle line''';
       expect(parsedSubs.first.text, 'Hello Subtitle!');
       expect(parsedSubs.first.startMs, 1000);
       expect(parsedSubs.first.endMs, 3500);
+
+      // ColorGradingService Matrix Test
+      final matrix = ColorGradingService.instance.calculateColorMatrix(
+        brightnessPercent: 20,
+        contrastPercent: 10,
+        saturationPercent: 15,
+      );
+      expect(matrix.length, 20);
     }
 
     controller.dispose();
