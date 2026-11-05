@@ -291,6 +291,17 @@ class PreviewPlayer extends StatelessWidget {
       );
     }
 
+    if (clip.cropMask.isMaskEnabled ||
+        clip.cropMask.cropLeft > 0 ||
+        clip.cropMask.cropTop > 0 ||
+        clip.cropMask.cropRight > 0 ||
+        clip.cropMask.cropBottom > 0) {
+      content = ClipPath(
+        clipper: ShapeMaskClipper(clip.cropMask),
+        child: content,
+      );
+    }
+
     return Opacity(
       opacity: clip.opacity.clamp(0.0, 1.0),
       child: content,
@@ -500,6 +511,17 @@ class PreviewPlayer extends StatelessWidget {
           ColorFiltered(colorFilter: chromaFilter, child: layerWidget);
     } else if (filter != null) {
       layerWidget = ColorFiltered(colorFilter: filter, child: layerWidget);
+    }
+
+    if (layer.cropMask.isMaskEnabled ||
+        layer.cropMask.cropLeft > 0 ||
+        layer.cropMask.cropTop > 0 ||
+        layer.cropMask.cropRight > 0 ||
+        layer.cropMask.cropBottom > 0) {
+      layerWidget = ClipPath(
+        clipper: ShapeMaskClipper(layer.cropMask),
+        child: layerWidget,
+      );
     }
 
     final relMs = (playheadMs - layer.startMs).clamp(0, layer.durationMs);

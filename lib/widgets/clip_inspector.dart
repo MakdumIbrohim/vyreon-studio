@@ -4,6 +4,7 @@ import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import 'inspector/audio_fx_section.dart';
 import 'inspector/chroma_key_section.dart';
+import 'inspector/crop_mask_section.dart';
 import 'inspector/inspector_slider.dart';
 import 'inspector/keyframe_section.dart';
 import 'inspector/layer_animation_section.dart';
@@ -423,6 +424,9 @@ class _ClipInspectorState extends State<ClipInspector> {
                 if (clip.type != ClipType.audio) ...[
                   _buildSectionHeader('PAN & ZOOM'),
                   PanZoomSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
+                  _buildSectionHeader('CROPPING & SHAPE MASK'),
+                  CropMaskSection(controller: controller, clip: clip),
                   const SizedBox(height: 14),
                 ],
 

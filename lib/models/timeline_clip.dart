@@ -8,9 +8,11 @@ import 'pip_presets.dart';
 import 'speed_point.dart';
 import 'transition_type.dart';
 import 'volume_point.dart';
+import 'crop_mask.dart';
 
 export 'audio_presets.dart';
 export 'clip_types.dart';
+export 'crop_mask.dart';
 export 'keyframe.dart';
 export 'layer_animations.dart';
 export 'pan_zoom.dart';
@@ -78,6 +80,7 @@ class TimelineClip {
   final List<VolumePoint> volumeEnvelope;
   final bool isDuckingEnabled;
   final double duckingLevel;
+  final ClipCropMask cropMask;
 
   const TimelineClip({
     required this.id,
@@ -138,6 +141,7 @@ class TimelineClip {
     this.volumeEnvelope = const [],
     this.isDuckingEnabled = false,
     this.duckingLevel = 0.25,
+    this.cropMask = const ClipCropMask(),
   });
 
   int get endMs => startMs + durationMs;
@@ -315,6 +319,7 @@ class TimelineClip {
     List<VolumePoint>? volumeEnvelope,
     bool? isDuckingEnabled,
     double? duckingLevel,
+    ClipCropMask? cropMask,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -376,6 +381,7 @@ class TimelineClip {
       volumeEnvelope: volumeEnvelope ?? this.volumeEnvelope,
       isDuckingEnabled: isDuckingEnabled ?? this.isDuckingEnabled,
       duckingLevel: duckingLevel ?? this.duckingLevel,
+      cropMask: cropMask ?? this.cropMask,
     );
   }
 
@@ -438,6 +444,7 @@ class TimelineClip {
     'volumeEnvelope': volumeEnvelope.map((v) => v.toJson()).toList(),
     'isDuckingEnabled': isDuckingEnabled,
     'duckingLevel': duckingLevel,
+    'cropMask': cropMask.toJson(),
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -554,6 +561,9 @@ class TimelineClip {
           const [],
       isDuckingEnabled: json['isDuckingEnabled'] as bool? ?? false,
       duckingLevel: (json['duckingLevel'] as num?)?.toDouble() ?? 0.25,
+      cropMask: json['cropMask'] != null
+          ? ClipCropMask.fromJson(json['cropMask'] as Map<String, dynamic>)
+          : const ClipCropMask(),
     );
   }
 }

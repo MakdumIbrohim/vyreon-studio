@@ -278,6 +278,20 @@ void main() {
     expect(controller.project.secondaryClips.length, secondariesBefore + 1);
     expect(controller.project.secondaryClips.last.name, 'Snapshot Layer');
 
+    // Cropping & Shape Mask test
+    final maskedClip = clip.copyWith(
+      cropMask: const ClipCropMask(
+        isMaskEnabled: true,
+        maskShape: MaskShape.circle,
+        cropLeft: 0.1,
+        cropRight: 0.1,
+      ),
+    );
+    expect(maskedClip.cropMask.isMaskEnabled, true);
+    expect(maskedClip.cropMask.maskShape, MaskShape.circle);
+    final path = maskedClip.cropMask.getClipPath(const Size(100, 100));
+    expect(path.getBounds().width, closeTo(80, 0.5));
+
     controller.dispose();
   });
 }
