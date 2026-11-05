@@ -78,6 +78,21 @@ void main() {
     expect(gradedClip.isVignetteEnabled, true);
     expect(gradedClip.vignetteIntensity, 0.75);
 
+    // Text styling test (Outline, Shadow, Glow)
+    final textClip = controller.project.secondaryClips.first.copyWith(
+      isTextOutlineEnabled: true,
+      textOutlineColor: 0xFF000000,
+      textOutlineWidth: 3.5,
+      isTextShadowEnabled: true,
+      isTextGlowEnabled: true,
+      textGlowColor: 0xFFFFD700,
+    );
+    expect(textClip.isTextOutlineEnabled, true);
+    expect(textClip.textOutlineWidth, 3.5);
+    expect(textClip.isTextShadowEnabled, true);
+    expect(textClip.isTextGlowEnabled, true);
+    expect(textClip.textGlowColor, 0xFFFFD700);
+
     controller.dispose();
   });
 }

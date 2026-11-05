@@ -46,6 +46,15 @@ class TimelineClip {
   final List<SpeedPoint> speedPoints;
   final bool isVignetteEnabled;
   final double vignetteIntensity;
+  final bool isTextOutlineEnabled;
+  final int textOutlineColor;
+  final double textOutlineWidth;
+  final bool isTextShadowEnabled;
+  final int textShadowColor;
+  final double textShadowBlur;
+  final bool isTextGlowEnabled;
+  final int textGlowColor;
+  final double textGlowRadius;
 
   const TimelineClip({
     required this.id,
@@ -84,6 +93,15 @@ class TimelineClip {
     this.speedPoints = const [],
     this.isVignetteEnabled = false,
     this.vignetteIntensity = 0.5,
+    this.isTextOutlineEnabled = false,
+    this.textOutlineColor = 0xFF000000,
+    this.textOutlineWidth = 2.0,
+    this.isTextShadowEnabled = false,
+    this.textShadowColor = 0xAA000000,
+    this.textShadowBlur = 6.0,
+    this.isTextGlowEnabled = false,
+    this.textGlowColor = 0xFFFFD700,
+    this.textGlowRadius = 12.0,
   });
 
   int get endMs => startMs + durationMs;
@@ -210,6 +228,15 @@ class TimelineClip {
     List<SpeedPoint>? speedPoints,
     bool? isVignetteEnabled,
     double? vignetteIntensity,
+    bool? isTextOutlineEnabled,
+    int? textOutlineColor,
+    double? textOutlineWidth,
+    bool? isTextShadowEnabled,
+    int? textShadowColor,
+    double? textShadowBlur,
+    bool? isTextGlowEnabled,
+    int? textGlowColor,
+    double? textGlowRadius,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -249,6 +276,15 @@ class TimelineClip {
       speedPoints: speedPoints ?? this.speedPoints,
       isVignetteEnabled: isVignetteEnabled ?? this.isVignetteEnabled,
       vignetteIntensity: vignetteIntensity ?? this.vignetteIntensity,
+      isTextOutlineEnabled: isTextOutlineEnabled ?? this.isTextOutlineEnabled,
+      textOutlineColor: textOutlineColor ?? this.textOutlineColor,
+      textOutlineWidth: textOutlineWidth ?? this.textOutlineWidth,
+      isTextShadowEnabled: isTextShadowEnabled ?? this.isTextShadowEnabled,
+      textShadowColor: textShadowColor ?? this.textShadowColor,
+      textShadowBlur: textShadowBlur ?? this.textShadowBlur,
+      isTextGlowEnabled: isTextGlowEnabled ?? this.isTextGlowEnabled,
+      textGlowColor: textGlowColor ?? this.textGlowColor,
+      textGlowRadius: textGlowRadius ?? this.textGlowRadius,
     );
   }
 
@@ -289,6 +325,15 @@ class TimelineClip {
     'speedPoints': speedPoints.map((s) => s.toJson()).toList(),
     'isVignetteEnabled': isVignetteEnabled,
     'vignetteIntensity': vignetteIntensity,
+    'isTextOutlineEnabled': isTextOutlineEnabled,
+    'textOutlineColor': textOutlineColor,
+    'textOutlineWidth': textOutlineWidth,
+    'isTextShadowEnabled': isTextShadowEnabled,
+    'textShadowColor': textShadowColor,
+    'textShadowBlur': textShadowBlur,
+    'isTextGlowEnabled': isTextGlowEnabled,
+    'textGlowColor': textGlowColor,
+    'textGlowRadius': textGlowRadius,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -351,6 +396,21 @@ class TimelineClip {
       isVignetteEnabled: json['isVignetteEnabled'] as bool? ?? false,
       vignetteIntensity:
           (json['vignetteIntensity'] as num?)?.toDouble() ?? 0.5,
+      isTextOutlineEnabled: json['isTextOutlineEnabled'] as bool? ?? false,
+      textOutlineColor:
+          (json['textOutlineColor'] as num?)?.toInt() ?? 0xFF000000,
+      textOutlineWidth:
+          (json['textOutlineWidth'] as num?)?.toDouble() ?? 2.0,
+      isTextShadowEnabled: json['isTextShadowEnabled'] as bool? ?? false,
+      textShadowColor:
+          (json['textShadowColor'] as num?)?.toInt() ?? 0xAA000000,
+      textShadowBlur:
+          (json['textShadowBlur'] as num?)?.toDouble() ?? 6.0,
+      isTextGlowEnabled: json['isTextGlowEnabled'] as bool? ?? false,
+      textGlowColor:
+          (json['textGlowColor'] as num?)?.toInt() ?? 0xFFFFD700,
+      textGlowRadius:
+          (json['textGlowRadius'] as num?)?.toDouble() ?? 12.0,
     );
   }
 }

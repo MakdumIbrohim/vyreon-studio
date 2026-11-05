@@ -6,6 +6,7 @@ import 'inspector/chroma_key_section.dart';
 import 'inspector/inspector_slider.dart';
 import 'inspector/keyframe_section.dart';
 import 'inspector/speed_ramp_section.dart';
+import 'inspector/text_style_section.dart';
 import 'inspector/trim_split_toolbar.dart';
 
 class ClipInspector extends StatefulWidget {
@@ -184,6 +185,8 @@ class _ClipInspectorState extends State<ClipInspector> {
                     onChanged: (val) =>
                         controller.updateClip(clip.copyWith(fontSize: val)),
                   ),
+                  const SizedBox(height: 10),
+                  TextStyleSection(controller: controller, clip: clip),
                   const SizedBox(height: 14),
                 ],
 

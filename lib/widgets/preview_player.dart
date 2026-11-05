@@ -315,22 +315,67 @@ class PreviewPlayer extends StatelessWidget {
 
     Widget layerWidget;
     if (layer.type == ClipType.text) {
-      layerWidget = Text(
+      final shadows = <Shadow>[];
+      if (layer.isTextShadowEnabled) {
+        shadows.add(
+          Shadow(
+            color: Color(layer.textShadowColor),
+            blurRadius: layer.textShadowBlur,
+            offset: const Offset(2, 2),
+          ),
+        );
+      }
+      if (layer.isTextGlowEnabled) {
+        shadows.add(
+          Shadow(
+            color: Color(layer.textGlowColor),
+            blurRadius: layer.textGlowRadius,
+          ),
+        );
+      }
+      if (shadows.isEmpty) {
+        shadows.add(
+          Shadow(
+            color: Colors.black.withValues(alpha: 0.8),
+            blurRadius: 8,
+            offset: const Offset(2, 2),
+          ),
+        );
+      }
+
+      final textMain = Text(
         layer.textContent,
         textAlign: TextAlign.center,
         style: TextStyle(
           color: layer.color,
           fontSize: layer.fontSize,
           fontWeight: FontWeight.bold,
-          shadows: [
-            Shadow(
-              color: Colors.black.withValues(alpha: 0.8),
-              blurRadius: 8,
-              offset: const Offset(2, 2),
-            ),
-          ],
+          shadows: shadows,
         ),
       );
+
+      if (layer.isTextOutlineEnabled) {
+        layerWidget = Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              layer.textContent,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: layer.fontSize,
+                fontWeight: FontWeight.bold,
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = layer.textOutlineWidth
+                  ..color = Color(layer.textOutlineColor),
+              ),
+            ),
+            textMain,
+          ],
+        );
+      } else {
+        layerWidget = textMain;
+      }
     } else if (layer.type == ClipType.sticker) {
       layerWidget = Text(
         layer.textContent,
