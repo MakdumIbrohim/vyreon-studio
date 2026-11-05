@@ -79,10 +79,20 @@ class AudioPlaybackService {
         await player.setFilePath(path);
       }
 
-      final vol = activeClip.isMuted
-          ? 0.0
-          : (activeClip.volume.clamp(0.0, 1.0));
-      await player.setVolume(vol);
+      // Check if any other clip has ducking enabled at playhead
+      final isAnyDuckingActive = audioClips.any((c) =>
+          c.id != activeClip!.id &&
+          c.isDuckingEnabled &&
+          playheadMs >= c.startMs &&
+          playheadMs < c.endMs);
+
+      final relMs =
+          (playheadMs - activeClip.startMs).clamp(0, activeClip.durationMs);
+      final vol = activeClip.getEffectiveVolumeAt(
+        relMs,
+        isDucked: isAnyDuckingActive,
+      );
+      await player.setVolume(vol.clamp(0.0, 1.0));
 
       // Apply Voice Changer Pitch (semitones to pitch multiplier: 2^(semitones / 12))
       final semitones = activeClip.voiceChanger.pitchSemitones;

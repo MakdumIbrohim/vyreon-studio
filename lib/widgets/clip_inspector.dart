@@ -13,6 +13,7 @@ import 'inspector/pip_section.dart';
 import 'inspector/speed_ramp_section.dart';
 import 'inspector/text_style_section.dart';
 import 'inspector/trim_split_toolbar.dart';
+import 'inspector/volume_envelope_section.dart';
 
 class ClipInspector extends StatefulWidget {
   final EditorController controller;
@@ -412,6 +413,9 @@ class _ClipInspectorState extends State<ClipInspector> {
                 if (clip.type == ClipType.audio || clip.type == ClipType.video) ...[
                   _buildSectionHeader('EQ & VOICE CHANGER'),
                   AudioFxSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
+                  _buildSectionHeader('VOLUME ENVELOPE & DUCKING'),
+                  VolumeEnvelopeSection(controller: controller, clip: clip),
                   const SizedBox(height: 14),
                 ],
 

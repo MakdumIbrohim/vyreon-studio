@@ -7,6 +7,7 @@ import 'pan_zoom.dart';
 import 'pip_presets.dart';
 import 'speed_point.dart';
 import 'transition_type.dart';
+import 'volume_point.dart';
 
 export 'audio_presets.dart';
 export 'clip_types.dart';
@@ -16,6 +17,7 @@ export 'pan_zoom.dart';
 export 'pip_presets.dart';
 export 'speed_point.dart';
 export 'transition_type.dart';
+export 'volume_point.dart';
 
 class TimelineClip {
   final String id;
@@ -73,6 +75,9 @@ class TimelineClip {
   final OverallAnimationType overallAnimation;
   final OutAnimationType outAnimation;
   final int outDurationMs;
+  final List<VolumePoint> volumeEnvelope;
+  final bool isDuckingEnabled;
+  final double duckingLevel;
 
   const TimelineClip({
     required this.id,
@@ -130,6 +135,9 @@ class TimelineClip {
     this.overallAnimation = OverallAnimationType.none,
     this.outAnimation = OutAnimationType.none,
     this.outDurationMs = 1000,
+    this.volumeEnvelope = const [],
+    this.isDuckingEnabled = false,
+    this.duckingLevel = 0.25,
   });
 
   int get endMs => startMs + durationMs;
@@ -155,6 +163,35 @@ class TimelineClip {
       }
     }
     return speed;
+  }
+
+  double getEffectiveVolumeAt(int relativeMs, {bool isDucked = false}) {
+    if (isMuted) return 0.0;
+    double base = volume;
+    if (volumeEnvelope.isNotEmpty) {
+      final sorted = List<VolumePoint>.from(volumeEnvelope)
+        ..sort((a, b) => a.timeMs.compareTo(b.timeMs));
+      if (relativeMs <= sorted.first.timeMs) {
+        base = sorted.first.volume;
+      } else if (relativeMs >= sorted.last.timeMs) {
+        base = sorted.last.volume;
+      } else {
+        for (int i = 0; i < sorted.length - 1; i++) {
+          final p1 = sorted[i];
+          final p2 = sorted[i + 1];
+          if (relativeMs >= p1.timeMs && relativeMs <= p2.timeMs) {
+            final span = p2.timeMs - p1.timeMs;
+            final t = span > 0 ? (relativeMs - p1.timeMs) / span : 0.0;
+            base = p1.volume + (p2.volume - p1.volume) * t;
+            break;
+          }
+        }
+      }
+    }
+    if (isDucked) {
+      base *= duckingLevel;
+    }
+    return base.clamp(0.0, 2.0);
   }
 
   InterpolatedTransform getInterpolatedTransform(int currentPlayheadMs) {
@@ -275,6 +312,9 @@ class TimelineClip {
     OverallAnimationType? overallAnimation,
     OutAnimationType? outAnimation,
     int? outDurationMs,
+    List<VolumePoint>? volumeEnvelope,
+    bool? isDuckingEnabled,
+    double? duckingLevel,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -333,6 +373,9 @@ class TimelineClip {
       overallAnimation: overallAnimation ?? this.overallAnimation,
       outAnimation: outAnimation ?? this.outAnimation,
       outDurationMs: outDurationMs ?? this.outDurationMs,
+      volumeEnvelope: volumeEnvelope ?? this.volumeEnvelope,
+      isDuckingEnabled: isDuckingEnabled ?? this.isDuckingEnabled,
+      duckingLevel: duckingLevel ?? this.duckingLevel,
     );
   }
 
@@ -392,6 +435,9 @@ class TimelineClip {
     'overallAnimation': overallAnimation.name,
     'outAnimation': outAnimation.name,
     'outDurationMs': outDurationMs,
+    'volumeEnvelope': volumeEnvelope.map((v) => v.toJson()).toList(),
+    'isDuckingEnabled': isDuckingEnabled,
+    'duckingLevel': duckingLevel,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -502,6 +548,12 @@ class TimelineClip {
         orElse: () => OutAnimationType.none,
       ),
       outDurationMs: (json['outDurationMs'] as num?)?.toInt() ?? 1000,
+      volumeEnvelope: (json['volumeEnvelope'] as List<dynamic>?)
+              ?.map((v) => VolumePoint.fromJson(v as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      isDuckingEnabled: json['isDuckingEnabled'] as bool? ?? false,
+      duckingLevel: (json['duckingLevel'] as num?)?.toDouble() ?? 0.25,
     );
   }
 }

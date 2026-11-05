@@ -251,6 +251,21 @@ void main() {
       expect(alpha, 0);
     }
 
+    // Volume Envelope & Audio Ducking test
+    final envelopedAudio = audioClip.copyWith(
+      isDuckingEnabled: true,
+      duckingLevel: 0.2,
+      volumeEnvelope: [
+        const VolumePoint(timeMs: 0, volume: 1.0),
+        const VolumePoint(timeMs: 2000, volume: 0.5),
+        const VolumePoint(timeMs: 4000, volume: 1.2),
+      ],
+    );
+    expect(envelopedAudio.isDuckingEnabled, true);
+    expect(envelopedAudio.duckingLevel, 0.2);
+    expect(envelopedAudio.getEffectiveVolumeAt(1000), closeTo(0.75, 0.01));
+    expect(envelopedAudio.getEffectiveVolumeAt(1000, isDucked: true), closeTo(0.15, 0.01));
+
     controller.dispose();
   });
 }
