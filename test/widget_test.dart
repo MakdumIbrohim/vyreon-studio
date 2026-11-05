@@ -6,6 +6,7 @@ import 'package:vyreon_studio/models/project.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/screens/editor_screen.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
+import 'package:vyreon_studio/services/rust_engine_service.dart';
 import 'package:vyreon_studio/services/video_thumbnail_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
@@ -218,6 +219,37 @@ void main() {
     expect(animatedLayer.overallAnimation, OverallAnimationType.pulse);
     expect(animatedLayer.outAnimation, OutAnimationType.fadeOut);
     expect(animatedLayer.outDurationMs, 500);
+
+    // Rust Engine Service test
+    final rust = RustEngineService.instance;
+    expect(rust.version.isNotEmpty, true);
+    if (rust.isAvailable) {
+      expect(rust.version, contains('RustCore'));
+      final lerp = rust.lerpTransform(
+        t: 0.5,
+        startScale: 1.0,
+        endScale: 2.0,
+        startX: 0.0,
+        endX: 10.0,
+        startY: -4.0,
+        endY: 4.0,
+      );
+      expect(lerp, isNotNull);
+      expect(lerp!.scale, closeTo(1.5, 0.01));
+      expect(lerp.offsetX, closeTo(5.0, 0.01));
+
+      final alpha = rust.chromaKeyAlpha(
+        r: 0,
+        g: 255,
+        b: 0,
+        keyR: 0,
+        keyG: 255,
+        keyB: 0,
+        threshold: 0.35,
+        smoothness: 0.1,
+      );
+      expect(alpha, 0);
+    }
 
     controller.dispose();
   });

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'rust_engine_service.dart';
 
 class AudioWaveformService {
   static final AudioWaveformService _instance = AudioWaveformService._internal();
@@ -41,7 +42,17 @@ class AudioWaveformService {
         return _generateSyntheticBeatWaveform(filePath, 5000, targetCount);
       }
 
-      // Read decimation chunks across the file
+      // 1. Rust-accelerated waveform extraction (Fast SIMD memory pass)
+      if (RustEngineService.instance.isAvailable && length < 25 * 1024 * 1024) {
+        final bytes = await file.readAsBytes();
+        final rustPeaks =
+            RustEngineService.instance.extractWaveformPeaks(bytes, targetCount);
+        if (rustPeaks != null && rustPeaks.isNotEmpty) {
+          return rustPeaks;
+        }
+      }
+
+      // 2. Fallback byte-level decimation pass
       final randomAccess = await file.open(mode: FileMode.read);
       final step = (length / targetCount).floor();
       final List<double> result = [];

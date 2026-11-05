@@ -1,4 +1,5 @@
 import 'dart:ui';
+import '../services/rust_engine_service.dart';
 
 class PanZoomTransform {
   final double startScale;
@@ -67,6 +68,27 @@ class PanZoomTransform {
       return (scale: 1.0, offsetX: 0.0, offsetY: 0.0);
     }
     final t = progress.clamp(0.0, 1.0);
+
+    // Accelerated by native Rust core if available
+    if (RustEngineService.instance.isAvailable) {
+      final rustRes = RustEngineService.instance.lerpTransform(
+        t: t,
+        startScale: startScale,
+        endScale: endScale,
+        startX: startOffsetX,
+        endX: endOffsetX,
+        startY: startOffsetY,
+        endY: endOffsetY,
+      );
+      if (rustRes != null) {
+        return (
+          scale: rustRes.scale,
+          offsetX: rustRes.offsetX,
+          offsetY: rustRes.offsetY
+        );
+      }
+    }
+
     final s = lerpDouble(startScale, endScale, t) ?? 1.0;
     final ox = lerpDouble(startOffsetX, endOffsetX, t) ?? 0.0;
     final oy = lerpDouble(startOffsetY, endOffsetY, t) ?? 0.0;

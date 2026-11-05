@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   file_picker: ^13.3.2
   just_audio: ^0.10.6
+  ffi: ^2.2.0
 
 dev_dependencies:
   flutter_test:
