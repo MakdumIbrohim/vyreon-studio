@@ -205,6 +205,20 @@ void main() {
     final nonExistentDuration = await VideoThumbnailService().probeDurationMs('non_existent.mp4');
     expect(nonExistentDuration, isNull);
 
+    // Layer Animations test (In, Overall, Out)
+    final animatedLayer = textClip.copyWith(
+      inAnimation: InAnimationType.fadeIn,
+      inDurationMs: 800,
+      overallAnimation: OverallAnimationType.pulse,
+      outAnimation: OutAnimationType.fadeOut,
+      outDurationMs: 500,
+    );
+    expect(animatedLayer.inAnimation, InAnimationType.fadeIn);
+    expect(animatedLayer.inDurationMs, 800);
+    expect(animatedLayer.overallAnimation, OverallAnimationType.pulse);
+    expect(animatedLayer.outAnimation, OutAnimationType.fadeOut);
+    expect(animatedLayer.outDurationMs, 500);
+
     controller.dispose();
   });
 }

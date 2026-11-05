@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'audio_presets.dart';
 import 'clip_types.dart';
 import 'keyframe.dart';
+import 'layer_animations.dart';
 import 'pan_zoom.dart';
 import 'pip_presets.dart';
 import 'speed_point.dart';
@@ -10,6 +11,7 @@ import 'transition_type.dart';
 export 'audio_presets.dart';
 export 'clip_types.dart';
 export 'keyframe.dart';
+export 'layer_animations.dart';
 export 'pan_zoom.dart';
 export 'pip_presets.dart';
 export 'speed_point.dart';
@@ -66,6 +68,11 @@ class TimelineClip {
   final List<double> waveformSamples;
   final PanZoomTransform panZoom;
   final PipPreset pipPreset;
+  final InAnimationType inAnimation;
+  final int inDurationMs;
+  final OverallAnimationType overallAnimation;
+  final OutAnimationType outAnimation;
+  final int outDurationMs;
 
   const TimelineClip({
     required this.id,
@@ -118,6 +125,11 @@ class TimelineClip {
     this.waveformSamples = const [],
     this.panZoom = const PanZoomTransform(),
     this.pipPreset = PipPreset.none,
+    this.inAnimation = InAnimationType.none,
+    this.inDurationMs = 1000,
+    this.overallAnimation = OverallAnimationType.none,
+    this.outAnimation = OutAnimationType.none,
+    this.outDurationMs = 1000,
   });
 
   int get endMs => startMs + durationMs;
@@ -258,6 +270,11 @@ class TimelineClip {
     List<double>? waveformSamples,
     PanZoomTransform? panZoom,
     PipPreset? pipPreset,
+    InAnimationType? inAnimation,
+    int? inDurationMs,
+    OverallAnimationType? overallAnimation,
+    OutAnimationType? outAnimation,
+    int? outDurationMs,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -311,6 +328,11 @@ class TimelineClip {
       waveformSamples: waveformSamples ?? this.waveformSamples,
       panZoom: panZoom ?? this.panZoom,
       pipPreset: pipPreset ?? this.pipPreset,
+      inAnimation: inAnimation ?? this.inAnimation,
+      inDurationMs: inDurationMs ?? this.inDurationMs,
+      overallAnimation: overallAnimation ?? this.overallAnimation,
+      outAnimation: outAnimation ?? this.outAnimation,
+      outDurationMs: outDurationMs ?? this.outDurationMs,
     );
   }
 
@@ -365,6 +387,11 @@ class TimelineClip {
     'waveformSamples': waveformSamples,
     'panZoom': panZoom.toJson(),
     'pipPreset': pipPreset.name,
+    'inAnimation': inAnimation.name,
+    'inDurationMs': inDurationMs,
+    'overallAnimation': overallAnimation.name,
+    'outAnimation': outAnimation.name,
+    'outDurationMs': outDurationMs,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -461,6 +488,20 @@ class TimelineClip {
         (e) => e.name == json['pipPreset'],
         orElse: () => PipPreset.none,
       ),
+      inAnimation: InAnimationType.values.firstWhere(
+        (e) => e.name == json['inAnimation'],
+        orElse: () => InAnimationType.none,
+      ),
+      inDurationMs: (json['inDurationMs'] as num?)?.toInt() ?? 1000,
+      overallAnimation: OverallAnimationType.values.firstWhere(
+        (e) => e.name == json['overallAnimation'],
+        orElse: () => OverallAnimationType.none,
+      ),
+      outAnimation: OutAnimationType.values.firstWhere(
+        (e) => e.name == json['outAnimation'],
+        orElse: () => OutAnimationType.none,
+      ),
+      outDurationMs: (json['outDurationMs'] as num?)?.toInt() ?? 1000,
     );
   }
 }

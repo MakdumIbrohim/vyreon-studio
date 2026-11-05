@@ -6,6 +6,7 @@ import 'inspector/audio_fx_section.dart';
 import 'inspector/chroma_key_section.dart';
 import 'inspector/inspector_slider.dart';
 import 'inspector/keyframe_section.dart';
+import 'inspector/layer_animation_section.dart';
 import 'inspector/layer_order_section.dart';
 import 'inspector/pan_zoom_section.dart';
 import 'inspector/pip_section.dart';
@@ -428,6 +429,9 @@ class _ClipInspectorState extends State<ClipInspector> {
                   const SizedBox(height: 14),
                   _buildSectionHeader('LAYER ORDER (Z-INDEX)'),
                   LayerOrderSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
+                  _buildSectionHeader('LAYER ANIMATIONS'),
+                  LayerAnimationSection(controller: controller, clip: clip),
                   const SizedBox(height: 14),
                 ],
 
