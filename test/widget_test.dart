@@ -531,6 +531,20 @@ Second subtitle line''';
       );
       expect(speedCurve, isNotNull);
       expect(speedCurve!.length, 3);
+
+      // Rust Engine Layer Pixel Blending Test
+      final dst = Uint8List.fromList([100, 100, 100, 255]);
+      final src = Uint8List.fromList([200, 50, 10, 255]);
+      final blended = RustEngineService.instance.blendLayersRgba(
+        dst,
+        src,
+        blendMode: 0,
+        opacity: 1.0,
+      );
+      expect(blended, isNotNull);
+      expect(blended![0], 200);
+      expect(blended[1], 50);
+      expect(blended[2], 10);
     }
 
     controller.dispose();

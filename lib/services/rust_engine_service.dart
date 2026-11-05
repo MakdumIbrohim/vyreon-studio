@@ -34,6 +34,8 @@ class RustEngineService with RustAudioOps, RustVisualOps {
   BezierEvalDart? bezierFn;
   @override
   BezierBatchDart? bezierBatchFn;
+  @override
+  BlendLayersDart? blendLayersFn;
 
   bool get isAvailable => _lib != null;
 
@@ -52,6 +54,7 @@ class RustEngineService with RustAudioOps, RustVisualOps {
         dspF32Fn = _lib!.lookupFunction<AudioDspF32C, AudioDspF32Dart>('vyreon_audio_dsp_process_f32');
         bezierFn = _lib!.lookupFunction<BezierEvalC, BezierEvalDart>('vyreon_bezier_eval');
         bezierBatchFn = _lib!.lookupFunction<BezierBatchC, BezierBatchDart>('vyreon_speed_curve_eval_batch');
+        blendLayersFn = _lib!.lookupFunction<BlendLayersC, BlendLayersDart>('vyreon_blend_layers_rgba');
       } catch (_) {
         // Partial load fallback
       }

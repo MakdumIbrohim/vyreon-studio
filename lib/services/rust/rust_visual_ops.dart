@@ -10,6 +10,7 @@ mixin RustVisualOps {
   ApplyLutDart? get applyLutFn;
   BezierEvalDart? get bezierFn;
   BezierBatchDart? get bezierBatchFn;
+  BlendLayersDart? get blendLayersFn;
 
   /// Rust-accelerated lerp transform
   ({double scale, double offsetX, double offsetY})? lerpTransform({
@@ -146,6 +147,38 @@ mixin RustVisualOps {
     } finally {
       malloc.free(inPtr);
       malloc.free(outPtr);
+    }
+    return null;
+  }
+
+  /// Rust-accelerated Layer Pixel Blending (Normal, Multiply, Screen, Overlay, etc.)
+  Uint8List? blendLayersRgba(
+    Uint8List dstPixels,
+    Uint8List srcPixels, {
+    int blendMode = 0,
+    double opacity = 1.0,
+  }) {
+    if (blendLayersFn == null || dstPixels.isEmpty || srcPixels.isEmpty || dstPixels.length != srcPixels.length) {
+      return null;
+    }
+
+    final dstPtr = malloc<ffi.Uint8>(dstPixels.length);
+    final srcPtr = malloc<ffi.Uint8>(srcPixels.length);
+    try {
+      final dstList = dstPtr.asTypedList(dstPixels.length);
+      dstList.setAll(0, dstPixels);
+      final srcList = srcPtr.asTypedList(srcPixels.length);
+      srcList.setAll(0, srcPixels);
+
+      final code = blendLayersFn!(dstPtr, srcPtr, dstPixels.length, blendMode, opacity);
+      if (code == 0) {
+        return Uint8List.fromList(dstList);
+      }
+    } catch (_) {
+      return null;
+    } finally {
+      malloc.free(dstPtr);
+      malloc.free(srcPtr);
     }
     return null;
   }

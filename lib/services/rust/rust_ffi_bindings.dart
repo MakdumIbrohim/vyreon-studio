@@ -187,6 +187,22 @@ typedef BezierBatchDart = int Function(
   double y2,
 );
 
+// Layer Pixel Blending
+typedef BlendLayersC = ffi.Int32 Function(
+  ffi.Pointer<ffi.Uint8> dstPtr,
+  ffi.Pointer<ffi.Uint8> srcPtr,
+  ffi.Size len,
+  ffi.Int32 mode,
+  ffi.Float opacity,
+);
+typedef BlendLayersDart = int Function(
+  ffi.Pointer<ffi.Uint8> dstPtr,
+  ffi.Pointer<ffi.Uint8> srcPtr,
+  int len,
+  int mode,
+  double opacity,
+);
+
 class RustFfiBindings {
   static ffi.DynamicLibrary? loadLibrary() {
     try {
