@@ -6,6 +6,7 @@ import 'package:vyreon_studio/models/project.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/screens/editor_screen.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
+import 'package:vyreon_studio/services/video_thumbnail_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
 
@@ -197,6 +198,12 @@ void main() {
 
     controller.reorderSecondaryClips(0, 2);
     expect(controller.project.secondaryClips[1].id, firstSecondaryId);
+
+    // Video Thumbnail & Duration probe test
+    final nonExistentThumb = await VideoThumbnailService().getThumbnailFile('non_existent.mp4');
+    expect(nonExistentThumb, isNull);
+    final nonExistentDuration = await VideoThumbnailService().probeDurationMs('non_existent.mp4');
+    expect(nonExistentDuration, isNull);
 
     controller.dispose();
   });

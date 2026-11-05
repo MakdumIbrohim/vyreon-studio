@@ -2,6 +2,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
 import '../services/media_catalog_service.dart';
+import '../services/video_thumbnail_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/media_browser/media_catalog_tabs.dart';
 
@@ -73,10 +74,20 @@ class _MediaBrowserDialogState extends State<MediaBrowserDialog>
         detectedType = ClipType.audio;
         defaultDuration = 10000;
         colorVal = 0xFF009688;
+        if (path != null) {
+          final probed = await VideoThumbnailService().probeDurationMs(path);
+          if (probed != null && probed > 0) defaultDuration = probed;
+        }
       } else {
         detectedType = ClipType.video;
         defaultDuration = 6000;
         colorVal = 0xFFE91E63;
+        if (path != null) {
+          final probed = await VideoThumbnailService().probeDurationMs(path);
+          if (probed != null && probed > 0) defaultDuration = probed;
+          // Pre-generate thumbnail in background
+          VideoThumbnailService().getThumbnailFile(path);
+        }
       }
 
       final now = DateTime.now().millisecondsSinceEpoch;

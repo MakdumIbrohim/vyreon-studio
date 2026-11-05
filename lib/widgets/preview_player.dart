@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
+import '../services/video_thumbnail_service.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/color_filters.dart';
@@ -198,40 +199,51 @@ class PreviewPlayer extends StatelessWidget {
               _buildPlaceholderVisual(clip),
         );
       } else {
-        content = Container(
-          color: Colors.black87,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              CustomPaint(
-                size: Size.infinite,
-                painter: ClipPatternPainter(clip.color),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
+        final relMs = (controller.playheadMs - clip.startMs)
+            .clamp(0, clip.durationMs);
+        content = FutureBuilder<File?>(
+          future: VideoThumbnailService()
+              .getThumbnailFile(clip.assetPath!, atMs: relMs),
+          builder: (context, snapshot) {
+            if (snapshot.hasData &&
+                snapshot.data != null &&
+                snapshot.data!.existsSync()) {
+              return Stack(
+                fit: StackFit.expand,
                 children: [
-                  const Icon(Icons.videocam, size: 48, color: Colors.white70),
-                  const SizedBox(height: 8),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      clip.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
+                  Image.file(
+                    snapshot.data!,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => _buildVideoPlaceholder(clip),
+                  ),
+                  Positioned(
+                    bottom: 8,
+                    left: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.videocam,
+                              size: 12, color: Colors.white70),
+                          const SizedBox(width: 4),
+                          Text(clip.name,
+                              style: const TextStyle(
+                                  fontSize: 10, color: Colors.white)),
+                        ],
                       ),
                     ),
                   ),
                 ],
-              ),
-            ],
-          ),
+              );
+            }
+            return _buildVideoPlaceholder(clip);
+          },
         );
       }
     } else {
@@ -282,6 +294,44 @@ class PreviewPlayer extends StatelessWidget {
     return Opacity(
       opacity: clip.opacity.clamp(0.0, 1.0),
       child: content,
+    );
+  }
+
+  Widget _buildVideoPlaceholder(TimelineClip clip) {
+    return Container(
+      color: Colors.black87,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: Size.infinite,
+            painter: ClipPatternPainter(clip.color),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.videocam, size: 48, color: Colors.white70),
+              const SizedBox(height: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  clip.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -405,30 +455,39 @@ class PreviewPlayer extends StatelessWidget {
         ),
       );
     } else {
-      layerWidget = Container(
-        width: 140,
-        height: 100,
-        decoration: BoxDecoration(
-          color: layer.color,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.5),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          layer.name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
+      final file = layer.assetPath != null ? File(layer.assetPath!) : null;
+      if (file != null && file.existsSync()) {
+        if (layer.type == ClipType.image) {
+          layerWidget = Image.file(
+            file,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => _buildLayerPlaceholder(layer),
+          );
+        } else if (layer.type == ClipType.video) {
+          final relMs =
+              (playheadMs - layer.startMs).clamp(0, layer.durationMs);
+          layerWidget = FutureBuilder<File?>(
+            future: VideoThumbnailService()
+                .getThumbnailFile(layer.assetPath!, atMs: relMs),
+            builder: (context, snapshot) {
+              if (snapshot.hasData &&
+                  snapshot.data != null &&
+                  snapshot.data!.existsSync()) {
+                return Image.file(
+                  snapshot.data!,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => _buildLayerPlaceholder(layer),
+                );
+              }
+              return _buildLayerPlaceholder(layer);
+            },
+          );
+        } else {
+          layerWidget = _buildLayerPlaceholder(layer);
+        }
+      } else {
+        layerWidget = _buildLayerPlaceholder(layer);
+      }
     }
 
     if (layer.isChromaKeyEnabled) {
@@ -456,6 +515,33 @@ class PreviewPlayer extends StatelessWidget {
               child: layerWidget,
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLayerPlaceholder(TimelineClip layer) {
+    return Container(
+      width: 140,
+      height: 100,
+      decoration: BoxDecoration(
+        color: layer.color,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.5),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        layer.name,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
