@@ -7,10 +7,11 @@ import 'package:vyreon_studio/models/subtitle_entry.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/screens/editor_screen.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
+import 'package:vyreon_studio/services/project_package_service.dart';
+import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/services/rust_engine_service.dart';
 import 'package:vyreon_studio/services/srt_service.dart';
 import 'package:vyreon_studio/services/video_thumbnail_service.dart';
-import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
 
 void main() {
@@ -391,6 +392,20 @@ Second subtitle line''';
     expect(styledTextClip.textBackgroundColor, 0xCC000000);
     expect(styledTextClip.textBackgroundCornerRadius, 8.0);
     expect(styledTextClip.textBackgroundPadding, 12.0);
+
+    // Project Archive Packager (.vyreon bundle) test
+    final exportResult = await ProjectPackageService.instance
+        .exportBundle(controller.project);
+    expect(exportResult.success, true);
+    expect(exportResult.filePath, isNotNull);
+    expect(exportResult.filePath, endsWith('.vyreon'));
+
+    final importResult = await ProjectPackageService.instance
+        .importBundle(exportResult.filePath!);
+    expect(importResult.success, true);
+    expect(importResult.project, isNotNull);
+    expect(importResult.project!.name, contains('(Imported)'));
+    expect(importResult.project!.clips.length, controller.project.clips.length);
 
     controller.dispose();
   });

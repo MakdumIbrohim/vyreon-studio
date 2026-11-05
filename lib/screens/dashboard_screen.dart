@@ -1,5 +1,7 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../models/project.dart';
+import '../services/project_package_service.dart';
 import '../services/project_storage_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
@@ -95,6 +97,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  Future<void> _exportBundle(Project project) async {
+    final result = await ProjectPackageService.instance.exportBundle(project);
+    if (!mounted) return;
+    if (result.success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Exported bundle: ${result.filePath}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result.error ?? 'Export failed'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  Future<void> _importBundle() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.any,
+    );
+    if (files.isNotEmpty && files.first.path != null) {
+      final result =
+          await ProjectPackageService.instance.importBundle(files.first.path!);
+      if (!mounted) return;
+      if (result.success) {
+        _loadProjects();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Imported "${result.project?.name}" successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result.error ?? 'Import failed'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final filtered = _projects.where((p) {
@@ -144,6 +193,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download, size: 20),
+            tooltip: 'Import .vyreon Bundle',
+            onPressed: _importBundle,
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, size: 20),
             tooltip: 'Refresh',
@@ -218,6 +272,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               onDuplicate: () => _duplicateProject(project),
                               onRename: () => _renameProject(project),
                               onDelete: () => _deleteProject(project),
+                              onExportBundle: () => _exportBundle(project),
                             );
                           },
                           childCount: filtered.length,

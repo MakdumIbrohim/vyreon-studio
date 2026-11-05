@@ -8,6 +8,7 @@ class ProjectCard extends StatelessWidget {
   final VoidCallback onDuplicate;
   final VoidCallback onRename;
   final VoidCallback onDelete;
+  final VoidCallback onExportBundle;
 
   const ProjectCard({
     super.key,
@@ -16,6 +17,7 @@ class ProjectCard extends StatelessWidget {
     required this.onDuplicate,
     required this.onRename,
     required this.onDelete,
+    required this.onExportBundle,
   });
 
   String _formatDuration(int ms) {
@@ -147,6 +149,7 @@ class ProjectCard extends StatelessWidget {
                         if (action == 'open') onOpen();
                         if (action == 'duplicate') onDuplicate();
                         if (action == 'rename') onRename();
+                        if (action == 'export_bundle') onExportBundle();
                         if (action == 'delete') onDelete();
                       },
                       itemBuilder: (ctx) => [
@@ -177,6 +180,16 @@ class ProjectCard extends StatelessWidget {
                               Icon(Icons.drive_file_rename_outline, size: 16),
                               SizedBox(width: 8),
                               Text('Rename'),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem(
+                          value: 'export_bundle',
+                          child: Row(
+                            children: [
+                              Icon(Icons.archive_outlined, size: 16),
+                              SizedBox(width: 8),
+                              Text('Export .vyreon Bundle'),
                             ],
                           ),
                         ),

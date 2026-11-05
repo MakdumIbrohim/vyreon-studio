@@ -37,6 +37,7 @@ dependencies:
   file_picker: ^13.3.2
   just_audio: ^0.10.6
   ffi: ^2.2.0
+  archive: ^4.6.0
 
 dev_dependencies:
   flutter_test:
