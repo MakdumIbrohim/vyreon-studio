@@ -1,8 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vyreon_studio/main.dart';
 import 'package:vyreon_studio/models/aspect_ratio.dart';
 import 'package:vyreon_studio/models/project.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
+import 'package:vyreon_studio/screens/editor_screen.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
@@ -21,6 +23,49 @@ void main() {
     // Verify Dashboard displays branding
     expect(find.text('VYREON STUDIO'), findsOneWidget);
     expect(find.text('Create New Project'), findsOneWidget);
+
+    // Responsive Mobile Portrait test
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.pump();
+    expect(find.text('VYREON STUDIO'), findsOneWidget);
+
+    // Responsive Desktop test
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.pump();
+    expect(find.text('VYREON STUDIO'), findsOneWidget);
+
+    // Reset view
+    addTearDown(tester.view.resetPhysicalSize);
+  });
+
+  testWidgets('EditorScreen responsive layout test', (WidgetTester tester) async {
+    final sampleProject = Project.createSample('Responsive Test', ProjectAspectRatio.ratio16x9);
+
+    // 1. Mobile Portrait (390x844)
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.pumpWidget(MaterialApp(home: EditorScreen(project: sampleProject)));
+    await tester.pump();
+    expect(find.text('Responsive Test'), findsOneWidget);
+    expect(find.text('Export'), findsOneWidget);
+
+    // 2. Mobile Landscape (844x390)
+    tester.view.physicalSize = const Size(844, 390);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.pumpWidget(MaterialApp(home: EditorScreen(project: sampleProject)));
+    await tester.pump();
+    expect(find.byIcon(Icons.file_upload_outlined), findsWidgets);
+
+    // 3. Desktop (1920x1080)
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    await tester.pumpWidget(MaterialApp(home: EditorScreen(project: sampleProject)));
+    await tester.pump();
+    expect(find.byIcon(Icons.file_upload_outlined), findsWidgets);
+
+    addTearDown(tester.view.resetPhysicalSize);
   });
 
   test('EditorController timeline operations test', () async {

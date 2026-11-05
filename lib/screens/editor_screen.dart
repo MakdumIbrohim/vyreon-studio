@@ -3,6 +3,7 @@ import '../models/project.dart';
 import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
+import '../utils/responsive.dart';
 import '../widgets/clip_inspector.dart';
 import '../widgets/media_wheel.dart';
 import '../widgets/preview_player.dart';
@@ -154,74 +155,293 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isPortrait = ResponsiveLayout.isPortrait(context);
+
     return Scaffold(
       backgroundColor: AppTheme.background,
       body: SafeArea(
-        child: Row(
-          children: [
-            // Left Action Bar (Vertical)
-            _buildLeftActionBar(),
+        child: isPortrait
+            ? _buildPortraitLayout()
+            : _buildLandscapeLayout(context),
+      ),
+    );
+  }
 
-            // Main Editor Space
-            Expanded(
-              child: Column(
-                children: [
-                  // Upper Half: Preview & Control Panel / Dial
-                  Expanded(
-                    flex: 6,
+  Widget _buildPortraitLayout() {
+    return Column(
+      children: [
+        _buildTopActionBar(),
+
+        // Upper: Video Preview Player
+        Expanded(
+          flex: 4,
+          child: PreviewPlayer(controller: _controller),
+        ),
+
+        // Middle: Wheel or Inspector (collapsible / compact)
+        if (!_isFullscreenPreview)
+          Container(
+            height: 195,
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              border: Border(
+                top: BorderSide(color: AppTheme.divider),
+                bottom: BorderSide(color: AppTheme.divider),
+              ),
+            ),
+            child: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                final selected = _controller.selectedClip;
+                if (selected != null) {
+                  return ClipInspector(
+                    controller: _controller,
+                    clip: selected,
+                  );
+                }
+                return MediaWheel(
+                  controller: _controller,
+                  onOpenMedia: () => _openMediaBrowser(isPrimary: true),
+                  onOpenLayer: () => _openMediaBrowser(isPrimary: false),
+                  onOpenAudio: _openAudioBrowser,
+                  onOpenRecord: _recordVoiceover,
+                );
+              },
+            ),
+          ),
+
+        // Lower: Timeline
+        if (!_isFullscreenPreview)
+          Expanded(
+            flex: 4,
+            child: TimelineView(controller: _controller),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildLandscapeLayout(BuildContext context) {
+    final panelWidth = ResponsiveLayout.getEditorPanelWidth(context);
+
+    return Row(
+      children: [
+        // Left Action Bar (Vertical)
+        _buildLeftActionBar(),
+
+        // Main Editor Space
+        Expanded(
+          child: Column(
+            children: [
+              // Upper Half: Preview & Control Panel / Dial
+              Expanded(
+                flex: 6,
+                child: Row(
+                  children: [
+                    // Video Preview Player
+                    Expanded(
+                      flex: 7,
+                      child: PreviewPlayer(controller: _controller),
+                    ),
+
+                    // Options / Wheel Panel (Right)
+                    if (!_isFullscreenPreview)
+                      SizedBox(
+                        width: panelWidth,
+                        child: ListenableBuilder(
+                          listenable: _controller,
+                          builder: (context, _) {
+                            final selected = _controller.selectedClip;
+                            if (selected != null) {
+                              return ClipInspector(
+                                controller: _controller,
+                                clip: selected,
+                              );
+                            }
+                            return Container(
+                              color: AppTheme.surface,
+                              child: MediaWheel(
+                                controller: _controller,
+                                onOpenMedia: () =>
+                                    _openMediaBrowser(isPrimary: true),
+                                onOpenLayer: () =>
+                                    _openMediaBrowser(isPrimary: false),
+                                onOpenAudio: _openAudioBrowser,
+                                onOpenRecord: _recordVoiceover,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              // Lower Half: Timeline
+              if (!_isFullscreenPreview)
+                Expanded(
+                  flex: 4,
+                  child: TimelineView(controller: _controller),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopActionBar() {
+    return ListenableBuilder(
+      listenable: _controller,
+      builder: (context, _) {
+        final canUndo = _controller.canUndo;
+        final canRedo = _controller.canRedo;
+
+        return Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: const BoxDecoration(
+            color: AppTheme.surface,
+            border: Border(
+              bottom: BorderSide(color: AppTheme.divider, width: 1),
+            ),
+          ),
+          child: Row(
+            children: [
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: const Icon(Icons.arrow_back, size: 20),
+                color: AppTheme.textPrimary,
+                tooltip: 'Back to Projects',
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  widget.project.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: const Icon(Icons.undo, size: 18),
+                color: canUndo ? AppTheme.textPrimary : AppTheme.textMuted,
+                tooltip: 'Undo',
+                onPressed: canUndo ? _controller.undo : null,
+              ),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: const Icon(Icons.redo, size: 18),
+                color: canRedo ? AppTheme.textPrimary : AppTheme.textMuted,
+                tooltip: 'Redo',
+                onPressed: canRedo ? _controller.redo : null,
+              ),
+              PopupMenuButton<String>(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                icon: const Icon(Icons.more_vert,
+                    size: 18, color: AppTheme.textPrimary),
+                color: AppTheme.surfaceVariant,
+                onSelected: (val) {
+                  if (val == 'snapshot') _captureSnapshot();
+                  if (val == 'settings') _openSettings();
+                  if (val == 'fullscreen') {
+                    setState(
+                        () => _isFullscreenPreview = !_isFullscreenPreview);
+                  }
+                },
+                itemBuilder: (ctx) => [
+                  const PopupMenuItem(
+                    value: 'snapshot',
                     child: Row(
                       children: [
-                        // Video Preview Player
-                        Expanded(
-                          flex: 7,
-                          child: PreviewPlayer(controller: _controller),
-                        ),
-
-                        // Options / Wheel Panel (Right)
-                        if (!_isFullscreenPreview)
-                          SizedBox(
-                            width: 280,
-                            child: ListenableBuilder(
-                              listenable: _controller,
-                              builder: (context, _) {
-                                final selected = _controller.selectedClip;
-                                if (selected != null) {
-                                  return ClipInspector(
-                                    controller: _controller,
-                                    clip: selected,
-                                  );
-                                }
-                                return Container(
-                                  color: AppTheme.surface,
-                                  child: MediaWheel(
-                                    controller: _controller,
-                                    onOpenMedia: () =>
-                                        _openMediaBrowser(isPrimary: true),
-                                    onOpenLayer: () =>
-                                        _openMediaBrowser(isPrimary: false),
-                                    onOpenAudio: _openAudioBrowser,
-                                    onOpenRecord: _recordVoiceover,
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                        Icon(Icons.camera_alt_outlined,
+                            size: 16, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text('Capture Frame',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white)),
                       ],
                     ),
                   ),
-
-                  // Lower Half: Timeline
-                  if (!_isFullscreenPreview)
-                    Expanded(
-                      flex: 4,
-                      child: TimelineView(controller: _controller),
+                  const PopupMenuItem(
+                    value: 'settings',
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings_outlined,
+                            size: 16, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text('Master Settings',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white)),
+                      ],
                     ),
+                  ),
+                  PopupMenuItem(
+                    value: 'fullscreen',
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isFullscreenPreview
+                              ? Icons.fullscreen_exit
+                              : Icons.fullscreen,
+                          size: 16,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          _isFullscreenPreview
+                              ? 'Exit Fullscreen'
+                              : 'Fullscreen Preview',
+                          style: const TextStyle(
+                              fontSize: 12, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
+              const SizedBox(width: 4),
+              InkWell(
+                onTap: _openExport,
+                borderRadius: BorderRadius.circular(6),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.file_upload_outlined,
+                          size: 15, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text(
+                        'Export',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

@@ -188,91 +188,95 @@ class _TimelineViewState extends State<TimelineView> {
                       },
                       child: SizedBox(
                         width: totalWidth,
-                        child: Stack(
-                          children: [
-                            // Tracks Content
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Time Ruler (Top)
-                                TimeRuler(
-                                  scale: scale,
-                                  totalDurationMs: totalMs,
-                                  width: totalWidth,
-                                ),
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.vertical,
+                          physics: const BouncingScrollPhysics(),
+                          child: Stack(
+                            children: [
+                              // Tracks Content
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Time Ruler (Top)
+                                  TimeRuler(
+                                    scale: scale,
+                                    totalDurationMs: totalMs,
+                                    width: totalWidth,
+                                  ),
 
-                                const Divider(
-                                    height: 1, color: AppTheme.divider),
+                                  const Divider(
+                                      height: 1, color: AppTheme.divider),
 
-                                // Track 0: Primary Video Track
-                                _buildPrimaryTrack(
-                                  clips: primaryClips,
-                                  scale: scale,
-                                  totalWidth: totalWidth,
-                                ),
+                                  // Track 0: Primary Video Track
+                                  _buildPrimaryTrack(
+                                    clips: primaryClips,
+                                    scale: scale,
+                                    totalWidth: totalWidth,
+                                  ),
 
-                                const Divider(
-                                    height: 1, color: AppTheme.divider),
+                                  const Divider(
+                                      height: 1, color: AppTheme.divider),
 
-                                // Track 1: Layers Track
-                                _buildSecondaryTrack(
-                                  clips: videoLayers,
-                                  scale: scale,
-                                  totalWidth: totalWidth,
-                                  trackLabel: 'LAYERS',
-                                  trackHeight: 38,
-                                ),
+                                  // Track 1: Layers Track
+                                  _buildSecondaryTrack(
+                                    clips: videoLayers,
+                                    scale: scale,
+                                    totalWidth: totalWidth,
+                                    trackLabel: 'LAYERS',
+                                    trackHeight: 38,
+                                  ),
 
-                                const Divider(
-                                    height: 1, color: AppTheme.divider),
+                                  const Divider(
+                                      height: 1, color: AppTheme.divider),
 
-                                // Track 2: Text Track
-                                _buildSecondaryTrack(
-                                  clips: textLayers,
-                                  scale: scale,
-                                  totalWidth: totalWidth,
-                                  trackLabel: 'TEXT',
-                                  trackHeight: 34,
-                                ),
+                                  // Track 2: Text Track
+                                  _buildSecondaryTrack(
+                                    clips: textLayers,
+                                    scale: scale,
+                                    totalWidth: totalWidth,
+                                    trackLabel: 'TEXT',
+                                    trackHeight: 34,
+                                  ),
 
-                                const Divider(
-                                    height: 1, color: AppTheme.divider),
+                                  const Divider(
+                                      height: 1, color: AppTheme.divider),
 
-                                // Track 3: Audio Track
-                                _buildAudioTrack(
-                                  clips: audioLayers,
-                                  scale: scale,
-                                  totalWidth: totalWidth,
-                                ),
-                              ],
-                            ),
+                                  // Track 3: Audio Track
+                                  _buildAudioTrack(
+                                    clips: audioLayers,
+                                    scale: scale,
+                                    totalWidth: totalWidth,
+                                  ),
+                                ],
+                              ),
 
-                            // Red Playhead Line
-                            Positioned(
-                              left: playheadX - 1,
-                              top: 0,
-                              bottom: 0,
-                              child: IgnorePointer(
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Container(
-                                      width: 2,
-                                      color: AppTheme.playhead,
-                                    ),
-                                    Positioned(
-                                      top: 0,
-                                      left: -5,
-                                      child: CustomPaint(
-                                        size: const Size(12, 10),
-                                        painter: PlayheadPointerPainter(),
+                              // Red Playhead Line
+                              Positioned(
+                                left: playheadX - 1,
+                                top: 0,
+                                bottom: 0,
+                                child: IgnorePointer(
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Container(
+                                        width: 2,
+                                        color: AppTheme.playhead,
                                       ),
-                                    ),
-                                  ],
+                                      Positioned(
+                                        top: 0,
+                                        left: -5,
+                                        child: CustomPaint(
+                                          size: const Size(12, 10),
+                                          painter: PlayheadPointerPainter(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ),

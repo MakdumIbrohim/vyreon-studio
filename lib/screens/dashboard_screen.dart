@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/project.dart';
 import '../services/project_storage_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/responsive.dart';
 import '../widgets/dashboard/create_project_banner.dart';
 import '../widgets/dashboard/project_card.dart';
 import 'create_project_dialog.dart';
@@ -157,17 +158,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   size: 20, color: Colors.white),
             ),
             const SizedBox(width: 10),
-            const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('VYREON STUDIO',
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'VYREON STUDIO',
                     style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.0)),
-                Text('Professional Mobile Video Editor',
-                    style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
-              ],
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    'Professional Mobile Video Editor',
+                    style: TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -201,35 +214,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Text(
                             'MY PROJECTS (${filtered.length})',
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 11,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.textMuted,
-                              letterSpacing: 0.8,
+                              letterSpacing: 0.6,
                             ),
                           ),
-                          const Spacer(),
-                          SizedBox(
-                            width: 180,
-                            height: 34,
-                            child: TextField(
-                              style: const TextStyle(
-                                  fontSize: 12, color: Colors.white),
-                              decoration: InputDecoration(
-                                hintText: 'Search...',
-                                hintStyle: const TextStyle(
-                                    fontSize: 12, color: AppTheme.textMuted),
-                                prefixIcon: const Icon(Icons.search,
-                                    size: 16, color: AppTheme.textMuted),
-                                filled: true,
-                                fillColor: AppTheme.surfaceVariant,
-                                contentPadding: EdgeInsets.zero,
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide.none,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 180),
+                                child: SizedBox(
+                                  height: 34,
+                                  child: TextField(
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.white),
+                                    decoration: InputDecoration(
+                                      hintText: 'Search...',
+                                      hintStyle: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textMuted),
+                                      prefixIcon: const Icon(Icons.search,
+                                          size: 16, color: AppTheme.textMuted),
+                                      filled: true,
+                                      fillColor: AppTheme.surfaceVariant,
+                                      contentPadding: EdgeInsets.zero,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                        borderSide: BorderSide.none,
+                                      ),
+                                    ),
+                                    onChanged: (val) =>
+                                        setState(() => _searchQuery = val),
+                                  ),
                                 ),
                               ),
-                              onChanged: (val) =>
-                                  setState(() => _searchQuery = val),
                             ),
                           ),
                         ],
@@ -264,11 +286,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       sliver: SliverGrid(
                         gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
+                            SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount:
+                              ResponsiveLayout.getDashboardColumns(context),
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
-                          childAspectRatio: 1.1,
+                          childAspectRatio: ResponsiveLayout.isPortrait(context)
+                              ? 1.2
+                              : 1.1,
                         ),
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
