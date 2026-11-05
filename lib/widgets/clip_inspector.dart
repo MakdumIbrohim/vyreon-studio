@@ -466,6 +466,26 @@ class _ClipInspectorState extends State<ClipInspector> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: _buildActionButton(
+                          icon: Icons.fast_rewind,
+                          label: 'Reverse',
+                          onTap: () async {
+                            final success =
+                                await controller.reverseClip(clip.id);
+                            if (context.mounted && success) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Video playback reversed successfully!'),
+                                  backgroundColor: AppTheme.surfaceVariant,
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildActionButton(
                           icon: Icons.music_note,
                           label: 'Extract Audio',
                           onTap: () async {

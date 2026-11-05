@@ -7,6 +7,7 @@ import '../services/audio_extraction_service.dart';
 import '../services/audio_playback_service.dart';
 import '../services/audio_waveform_service.dart';
 import '../services/project_storage_service.dart';
+import '../services/video_reverse_service.dart';
 
 class EditorController extends ChangeNotifier {
   Project _project;
@@ -577,6 +578,31 @@ class EditorController extends ChangeNotifier {
     });
 
     return audioClip;
+  }
+
+  Future<bool> reverseClip(String clipId) async {
+    final clipIndex = _project.clips.indexWhere((c) => c.id == clipId);
+    if (clipIndex < 0) return false;
+    final clip = _project.clips[clipIndex];
+
+    _pushUndo();
+    String? reversedPath;
+    if (clip.assetPath != null) {
+      reversedPath = await VideoReverseService().reverseVideoClip(
+        inputPath: clip.assetPath!,
+        clipId: clip.id,
+      );
+    }
+
+    final updated = clip.copyWith(
+      assetPath: reversedPath ?? clip.assetPath,
+      name: clip.name.contains('(Reversed)')
+          ? clip.name.replaceAll(' (Reversed)', '')
+          : '${clip.name} (Reversed)',
+    );
+
+    updateClip(updated);
+    return true;
   }
 
   void bringToFront(String clipId) {

@@ -311,6 +311,12 @@ void main() {
     expect(extractedAudio.durationMs, actualVideo.durationMs);
     expect(actualVideo.isMuted, true);
 
+    // Reverse Video Clip test
+    final reversed = await controller.reverseClip(testVideoClip.id);
+    expect(reversed, true);
+    final reversedClip = controller.project.clips.firstWhere((c) => c.id == testVideoClip.id);
+    expect(reversedClip.name, contains('(Reversed)'));
+
     controller.dispose();
   });
 }
