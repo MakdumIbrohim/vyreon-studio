@@ -267,7 +267,20 @@ class _TimelineViewState extends State<TimelineView> {
                                 ],
                               ),
 
-                              // Interactive Red Playhead Line & Scrub Handle
+                              // 1. Non-blocking vertical red needle across full tracks
+                              Positioned(
+                                left: playheadX - 1,
+                                top: 0,
+                                bottom: 0,
+                                child: IgnorePointer(
+                                  child: Container(
+                                    width: 2,
+                                    color: AppTheme.playhead,
+                                  ),
+                                ),
+                              ),
+
+                              // 2. Interactive Red Playhead Scrubber Handle at top ruler
                               TimelinePlayheadWidget(
                                 controller: controller,
                                 playheadX: playheadX,

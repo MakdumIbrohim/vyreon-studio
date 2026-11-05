@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../state/editor_controller.dart';
-import '../../theme/app_theme.dart';
 import 'timeline_painters.dart';
 
 class TimelinePlayheadWidget extends StatefulWidget {
@@ -30,8 +29,8 @@ class _TimelinePlayheadWidgetState extends State<TimelinePlayheadWidget> {
     return Positioned(
       left: widget.playheadX - 18,
       top: 0,
-      bottom: 0,
       width: 36,
+      height: 28,
       child: MouseRegion(
         cursor: SystemMouseCursors.resizeLeftRight,
         child: GestureDetector(
@@ -51,27 +50,12 @@ class _TimelinePlayheadWidgetState extends State<TimelinePlayheadWidget> {
                 (_dragStartPlayheadMs + deltaMs).clamp(0, widget.totalMs);
             widget.controller.seekTo(targetMs, snapToBeat: true);
           },
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                left: 17,
-                top: 0,
-                bottom: 0,
-                child: Container(
-                  width: 2,
-                  color: AppTheme.playhead,
-                ),
-              ),
-              Positioned(
-                top: 0,
-                left: 12,
-                child: CustomPaint(
-                  size: const Size(12, 10),
-                  painter: PlayheadPointerPainter(),
-                ),
-              ),
-            ],
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: CustomPaint(
+              size: const Size(12, 10),
+              painter: PlayheadPointerPainter(),
+            ),
           ),
         ),
       ),
