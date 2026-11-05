@@ -6,6 +6,7 @@ import 'package:vyreon_studio/models/project.dart';
 import 'package:vyreon_studio/models/subtitle_entry.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/screens/editor_screen.dart';
+import 'package:vyreon_studio/services/audio_recording_service.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
 import 'package:vyreon_studio/services/ffmpeg_graph_builder.dart';
 import 'package:vyreon_studio/services/project_package_service.dart';
@@ -469,6 +470,11 @@ Second subtitle line''';
     expect(renderGraph.filterComplex.contains('subtitles'), true);
     expect(renderGraph.videoMap.isNotEmpty, true);
     expect(renderGraph.audioMap.isNotEmpty, true);
+
+    // Audio Recording Service test
+    expect(AudioRecordingService.instance.isRecording, false);
+    final hasPerm = await AudioRecordingService.instance.hasPermission();
+    expect(hasPerm, isA<bool>());
 
     controller.dispose();
   });
