@@ -5,6 +5,7 @@ import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/clip_inspector.dart';
+import '../widgets/editor/audio_master_mixer_modal_sheet.dart';
 import '../widgets/editor/editor_side_bar.dart';
 import '../widgets/editor/editor_top_bar.dart';
 import '../widgets/editor/snapshot_modal_sheet.dart';
@@ -79,6 +80,10 @@ class _EditorScreenState extends State<EditorScreen> {
     SubtitleModalSheet.show(context, _controller);
   }
 
+  void _openAudioMixer() {
+    AudioMasterMixerModalSheet.show(context, _controller);
+  }
+
   Future<void> _openSettings() async {
     final updated = await showDialog(
       context: context,
@@ -126,6 +131,7 @@ class _EditorScreenState extends State<EditorScreen> {
           onToggleFullscreen: _toggleFullscreen,
           onCaptureSnapshot: _captureSnapshot,
           onOpenSubtitles: _openSubtitles,
+          onOpenAudioMixer: _openAudioMixer,
           onOpenSettings: _openSettings,
           onOpenExport: _openExport,
           onBack: () => Navigator.of(context).pop(),
@@ -191,6 +197,7 @@ class _EditorScreenState extends State<EditorScreen> {
           onToggleFullscreen: _toggleFullscreen,
           onCaptureSnapshot: _captureSnapshot,
           onOpenSubtitles: _openSubtitles,
+          onOpenAudioMixer: _openAudioMixer,
           onOpenSettings: _openSettings,
           onOpenExport: _openExport,
           onBack: () => Navigator.of(context).pop(),

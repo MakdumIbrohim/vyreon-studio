@@ -24,12 +24,17 @@ class AudioPlaybackService {
     required int playheadMs,
     required bool isPlaying,
     required List<TimelineClip> audioClips,
+    double masterVolume = 1.0,
+    bool isMasterMuted = false,
+    double audioFadeInDuration = 0.0,
+    double audioFadeOutDuration = 0.0,
+    int totalDurationMs = 0,
   }) async {
     await _ensureInitialized();
     final player = _player;
     if (player == null) return;
 
-    if (!isPlaying) {
+    if (!isPlaying || isMasterMuted) {
       try {
         if (player.playing) {
           await player.pause();
@@ -88,10 +93,30 @@ class AudioPlaybackService {
 
       final relMs =
           (playheadMs - activeClip.startMs).clamp(0, activeClip.durationMs);
-      final vol = activeClip.getEffectiveVolumeAt(
+      double vol = activeClip.getEffectiveVolumeAt(
         relMs,
         isDucked: isAnyDuckingActive,
       );
+
+      // Apply master volume multiplier
+      vol *= masterVolume;
+
+      // Apply Fade In
+      if (audioFadeInDuration > 0 && playheadMs < (audioFadeInDuration * 1000)) {
+        final fadeRatio = playheadMs / (audioFadeInDuration * 1000);
+        vol *= fadeRatio.clamp(0.0, 1.0);
+      }
+
+      // Apply Fade Out
+      if (audioFadeOutDuration > 0 && totalDurationMs > 0) {
+        final fadeOutStart = totalDurationMs - (audioFadeOutDuration * 1000);
+        if (playheadMs > fadeOutStart) {
+          final remaining = totalDurationMs - playheadMs;
+          final fadeRatio = remaining / (audioFadeOutDuration * 1000);
+          vol *= fadeRatio.clamp(0.0, 1.0);
+        }
+      }
+
       await player.setVolume(vol.clamp(0.0, 1.0));
 
       // Apply Voice Changer Pitch (semitones to pitch multiplier: 2^(semitones / 12))

@@ -9,6 +9,7 @@ class EditorTopBar extends StatelessWidget {
   final VoidCallback onToggleFullscreen;
   final VoidCallback onCaptureSnapshot;
   final VoidCallback onOpenSubtitles;
+  final VoidCallback onOpenAudioMixer;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenExport;
   final VoidCallback onBack;
@@ -21,6 +22,7 @@ class EditorTopBar extends StatelessWidget {
     required this.onToggleFullscreen,
     required this.onCaptureSnapshot,
     required this.onOpenSubtitles,
+    required this.onOpenAudioMixer,
     required this.onOpenSettings,
     required this.onOpenExport,
     required this.onBack,
@@ -91,6 +93,7 @@ class EditorTopBar extends StatelessWidget {
                 onSelected: (val) {
                   if (val == 'snapshot') onCaptureSnapshot();
                   if (val == 'subtitles') onOpenSubtitles();
+                  if (val == 'mixer') onOpenAudioMixer();
                   if (val == 'settings') onOpenSettings();
                   if (val == 'fullscreen') onToggleFullscreen();
                 },
@@ -116,6 +119,19 @@ class EditorTopBar extends StatelessWidget {
                             size: 16, color: Colors.white),
                         SizedBox(width: 8),
                         Text('Subtitles & SRT',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'mixer',
+                    child: Row(
+                      children: [
+                        Icon(Icons.tune,
+                            size: 16, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text('Audio Master Mixer',
                             style:
                                 TextStyle(fontSize: 12, color: Colors.white)),
                       ],

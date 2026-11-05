@@ -21,6 +21,11 @@ mixin EditorPlaybackMixin on EditorControllerBase {
       playheadMs: playheadMs,
       isPlaying: isPlaying,
       audioClips: project.clips,
+      masterVolume: project.settings.masterVolume,
+      isMasterMuted: project.settings.isMasterMuted,
+      audioFadeInDuration: project.settings.audioFadeInDuration,
+      audioFadeOutDuration: project.settings.audioFadeOutDuration,
+      totalDurationMs: project.totalDurationMs,
     );
   }
 

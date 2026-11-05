@@ -8,6 +8,7 @@ class EditorSideBar extends StatelessWidget {
   final VoidCallback onToggleFullscreen;
   final VoidCallback onCaptureSnapshot;
   final VoidCallback onOpenSubtitles;
+  final VoidCallback onOpenAudioMixer;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenExport;
   final VoidCallback onBack;
@@ -19,6 +20,7 @@ class EditorSideBar extends StatelessWidget {
     required this.onToggleFullscreen,
     required this.onCaptureSnapshot,
     required this.onOpenSubtitles,
+    required this.onOpenAudioMixer,
     required this.onOpenSettings,
     required this.onOpenExport,
     required this.onBack,
@@ -93,6 +95,14 @@ class EditorSideBar extends StatelessWidget {
                         color: AppTheme.textPrimary,
                         tooltip: 'Subtitles & SRT',
                         onPressed: onOpenSubtitles,
+                      ),
+
+                      // Audio Master Mixer
+                      IconButton(
+                        icon: const Icon(Icons.tune, size: 20),
+                        color: AppTheme.textPrimary,
+                        tooltip: 'Audio Master Mixer',
+                        onPressed: onOpenAudioMixer,
                       ),
 
                       // Master Settings

@@ -359,6 +359,21 @@ Second subtitle line''';
     controller.deleteSubtitle(3);
     expect(controller.project.subtitles.length, 2);
 
+    // Audio Master Mixer settings test
+    expect(controller.project.settings.masterVolume, 1.0);
+    expect(controller.project.settings.isMasterMuted, false);
+
+    controller.updateSettings(controller.project.settings.copyWith(
+      masterVolume: 1.5,
+      isMasterMuted: true,
+      audioFadeInDuration: 2.0,
+      audioFadeOutDuration: 3.0,
+    ));
+    expect(controller.project.settings.masterVolume, 1.5);
+    expect(controller.project.settings.isMasterMuted, true);
+    expect(controller.project.settings.audioFadeInDuration, 2.0);
+    expect(controller.project.settings.audioFadeOutDuration, 3.0);
+
     controller.dispose();
   });
 }
