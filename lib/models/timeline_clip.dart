@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'audio_presets.dart';
 import 'clip_types.dart';
 import 'keyframe.dart';
 import 'speed_point.dart';
 import 'transition_type.dart';
 
+export 'audio_presets.dart';
 export 'clip_types.dart';
 export 'keyframe.dart';
 export 'speed_point.dart';
@@ -55,6 +57,8 @@ class TimelineClip {
   final bool isTextGlowEnabled;
   final int textGlowColor;
   final double textGlowRadius;
+  final AudioEqPreset eqPreset;
+  final VoiceChangerPreset voiceChanger;
 
   const TimelineClip({
     required this.id,
@@ -102,6 +106,8 @@ class TimelineClip {
     this.isTextGlowEnabled = false,
     this.textGlowColor = 0xFFFFD700,
     this.textGlowRadius = 12.0,
+    this.eqPreset = AudioEqPreset.normal,
+    this.voiceChanger = VoiceChangerPreset.none,
   });
 
   int get endMs => startMs + durationMs;
@@ -237,6 +243,8 @@ class TimelineClip {
     bool? isTextGlowEnabled,
     int? textGlowColor,
     double? textGlowRadius,
+    AudioEqPreset? eqPreset,
+    VoiceChangerPreset? voiceChanger,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -285,6 +293,8 @@ class TimelineClip {
       isTextGlowEnabled: isTextGlowEnabled ?? this.isTextGlowEnabled,
       textGlowColor: textGlowColor ?? this.textGlowColor,
       textGlowRadius: textGlowRadius ?? this.textGlowRadius,
+      eqPreset: eqPreset ?? this.eqPreset,
+      voiceChanger: voiceChanger ?? this.voiceChanger,
     );
   }
 
@@ -334,6 +344,8 @@ class TimelineClip {
     'isTextGlowEnabled': isTextGlowEnabled,
     'textGlowColor': textGlowColor,
     'textGlowRadius': textGlowRadius,
+    'eqPreset': eqPreset.name,
+    'voiceChanger': voiceChanger.name,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -411,6 +423,14 @@ class TimelineClip {
           (json['textGlowColor'] as num?)?.toInt() ?? 0xFFFFD700,
       textGlowRadius:
           (json['textGlowRadius'] as num?)?.toDouble() ?? 12.0,
+      eqPreset: AudioEqPreset.values.firstWhere(
+        (e) => e.name == json['eqPreset'],
+        orElse: () => AudioEqPreset.normal,
+      ),
+      voiceChanger: VoiceChangerPreset.values.firstWhere(
+        (e) => e.name == json['voiceChanger'],
+        orElse: () => VoiceChangerPreset.none,
+      ),
     );
   }
 }

@@ -93,6 +93,18 @@ void main() {
     expect(textClip.isTextGlowEnabled, true);
     expect(textClip.textGlowColor, 0xFFFFD700);
 
+    // Audio EQ & Voice Changer test
+    final audioClip = controller.project.secondaryClips
+        .firstWhere((c) => c.type == ClipType.audio)
+        .copyWith(
+          eqPreset: AudioEqPreset.bassBooster,
+          voiceChanger: VoiceChangerPreset.chipmunk,
+        );
+    expect(audioClip.eqPreset, AudioEqPreset.bassBooster);
+    expect(audioClip.eqPreset.bandGains.first, 6);
+    expect(audioClip.voiceChanger, VoiceChangerPreset.chipmunk);
+    expect(audioClip.voiceChanger.pitchSemitones, 6);
+
     controller.dispose();
   });
 }

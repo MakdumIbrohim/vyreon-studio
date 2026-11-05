@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
+import 'inspector/audio_fx_section.dart';
 import 'inspector/chroma_key_section.dart';
 import 'inspector/inspector_slider.dart';
 import 'inspector/keyframe_section.dart';
@@ -401,7 +402,14 @@ class _ClipInspectorState extends State<ClipInspector> {
                 const SizedBox(height: 10),
                 SpeedRampSection(controller: controller, clip: clip),
 
-                const SizedBox(height: 18),
+                const SizedBox(height: 14),
+
+                // Audio Equalizer & Voice Changer
+                if (clip.type == ClipType.audio || clip.type == ClipType.video) ...[
+                  _buildSectionHeader('EQ & VOICE CHANGER'),
+                  AudioFxSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
+                ],
 
                 // Duplicate & Layer controls
                 _buildSectionHeader('CLIP MANAGEMENT'),

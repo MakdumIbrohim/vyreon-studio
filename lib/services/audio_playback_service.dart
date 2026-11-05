@@ -84,6 +84,15 @@ class AudioPlaybackService {
           : (activeClip.volume.clamp(0.0, 1.0));
       await player.setVolume(vol);
 
+      // Apply Voice Changer Pitch (semitones to pitch multiplier: 2^(semitones / 12))
+      final semitones = activeClip.voiceChanger.pitchSemitones;
+      final pitchMultiplier = semitones == 0
+          ? 1.0
+          : (1.0 * (semitones > 0 ? 1.0 + (semitones * 0.07) : 1.0 + (semitones * 0.05))).clamp(0.5, 2.0);
+      try {
+        await player.setPitch(pitchMultiplier);
+      } catch (_) {}
+
       final currentPos = player.position;
       final diffMs = (currentPos.inMilliseconds - clipOffsetMs).abs();
 
