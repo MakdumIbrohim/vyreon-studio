@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import '../models/aspect_ratio.dart';
 import '../models/project.dart';
 
 class ProjectStorageService {
@@ -42,13 +41,7 @@ class ProjectStorageService {
       }
     }
 
-    // Default seed project if none exists
-    final defaultProject = Project.createSample(
-      'My First Video',
-      ProjectAspectRatio.ratio16x9,
-    );
-    _cachedProjects = [defaultProject];
-    await saveProjects(_cachedProjects!);
+    _cachedProjects = [];
     return _cachedProjects!;
   }
 
