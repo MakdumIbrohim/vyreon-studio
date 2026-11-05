@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:record/record.dart';
+import 'rust_engine_service.dart';
 
 class AudioRecordingService {
   static final AudioRecordingService instance = AudioRecordingService._();
@@ -69,6 +71,22 @@ class AudioRecordingService {
   Stream<Amplitude>? getAmplitudeStream() {
     if (_audioRecorder == null) return null;
     return _audioRecorder!.onAmplitudeChanged(const Duration(milliseconds: 100));
+  }
+
+  /// Post-process or clean recorded PCM audio with native Rust DSP (Noise Gate, Rumble filter)
+  Int16List processRecordedPcm({
+    required Int16List pcmSamples,
+    double volume = 1.0,
+    double noiseGateThreshold = 0.02,
+    bool enableHighpass = true,
+  }) {
+    final processed = RustEngineService.instance.processAudioPcm16(
+      pcmSamples,
+      volume: volume,
+      noiseGateThreshold: noiseGateThreshold,
+      enableHighpass: enableHighpass,
+    );
+    return processed ?? pcmSamples;
   }
 
   Future<void> dispose() async {

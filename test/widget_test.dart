@@ -484,6 +484,14 @@ Second subtitle line''';
     final hasPerm = await AudioRecordingService.instance.hasPermission();
     expect(hasPerm, isA<bool>());
 
+    final cleanedMicAudio = AudioRecordingService.instance.processRecordedPcm(
+      pcmSamples: Int16List.fromList([15, 25, 8000]),
+      volume: 1.2,
+      noiseGateThreshold: 0.03,
+      enableHighpass: true,
+    );
+    expect(cleanedMicAudio.length, 3);
+
     // Audio Denoise & Enhancer test
     final audioWithDenoise = testBeatsAudio.copyWith(
       denoisePreset: AudioDenoisePreset.voiceClarity,
