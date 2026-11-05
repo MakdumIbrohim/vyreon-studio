@@ -15,6 +15,7 @@ import 'package:vyreon_studio/services/project_package_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/services/rust_engine_service.dart';
 import 'package:vyreon_studio/services/srt_service.dart';
+import 'package:vyreon_studio/services/video_render_service.dart';
 import 'package:vyreon_studio/services/video_thumbnail_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
 import 'package:vyreon_studio/widgets/timeline/timeline_clip_widget.dart';
@@ -520,6 +521,16 @@ Second subtitle line''';
     expect(transitionRenderGraph.filterComplex.contains('xfade=transition=fade'), true);
     expect(transitionRenderGraph.filterComplex.contains('fade=t=in:st=0:d='), true);
     expect(transitionRenderGraph.filterComplex.contains('fade=t=out:st='), true);
+
+    // Export filename format test
+    final testDate = DateTime(2026, 11, 5);
+    final filename = VideoRenderService.formatOutputFilename(
+      projectName: 'Summer Vacation',
+      resolution: 'FHD 1080p',
+      fps: 60,
+      date: testDate,
+    );
+    expect(filename, 'Summer_Vacation-1080p-60fps-2026-11-05.mp4');
 
     // Audio Recording Service test
     expect(AudioRecordingService.instance.isRecording, false);

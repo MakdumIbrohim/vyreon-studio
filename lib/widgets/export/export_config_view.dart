@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/project.dart';
+import '../../services/video_render_service.dart';
 import '../../theme/app_theme.dart';
 
 class ExportConfigView extends StatelessWidget {
@@ -194,23 +195,52 @@ class ExportConfigView extends StatelessWidget {
             color: AppTheme.surfaceVariant.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.folder_outlined,
-                  size: 16, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  project.settings.customExportDirectory ??
-                      '~/Videos/VyreonStudio',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontFamily: 'monospace',
-                    color: AppTheme.textSecondary,
+              Row(
+                children: [
+                  const Icon(Icons.folder_outlined,
+                      size: 16, color: AppTheme.primary),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      project.settings.customExportDirectory ??
+                          '~/Videos/VyreonStudio',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontFamily: 'monospace',
+                        color: AppTheme.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(Icons.movie_creation_outlined,
+                      size: 15, color: Colors.cyanAccent),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      VideoRenderService.formatOutputFilename(
+                        projectName: project.name,
+                        resolution: selectedResolution,
+                        fps: selectedFps,
+                      ),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontFamily: 'monospace',
+                        color: AppTheme.textMuted,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

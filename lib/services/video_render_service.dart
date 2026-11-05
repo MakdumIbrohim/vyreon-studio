@@ -44,6 +44,39 @@ class VideoRenderService {
     return (w, h);
   }
 
+  /// Generates structured output filename: namaproject-beraparesolusinya-berapafps-tanggalekspor.mp4
+  static String formatOutputFilename({
+    required String projectName,
+    required String resolution,
+    required int fps,
+    DateTime? date,
+  }) {
+    final sanitizedName =
+        projectName.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+
+    String resTag = '1080p';
+    if (resolution.contains('720p')) {
+      resTag = '720p';
+    } else if (resolution.contains('2160p') || resolution.contains('4K')) {
+      resTag = '4K';
+    } else if (resolution.contains('1080p')) {
+      resTag = '1080p';
+    } else {
+      final match = RegExp(r'(\d+p|\d+x\d+)').firstMatch(resolution);
+      if (match != null) {
+        resTag = match.group(0)!;
+      }
+    }
+
+    final d = date ?? DateTime.now();
+    final yStr = d.year.toString().padLeft(4, '0');
+    final mStr = d.month.toString().padLeft(2, '0');
+    final dStr = d.day.toString().padLeft(2, '0');
+    final dateFormatted = '$yStr-$mStr-$dStr';
+
+    return '$sanitizedName-$resTag-${fps}fps-$dateFormatted.mp4';
+  }
+
   Future<RenderResult> renderProject({
     required Project project,
     required String resolution,
@@ -71,10 +104,20 @@ class VideoRenderService {
       } catch (_) {}
     }
 
-    final sanitizedName =
-        project.name.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
-    final outputPath =
-        '${outputDir.path}/${sanitizedName}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final filename = formatOutputFilename(
+      projectName: project.name,
+      resolution: resolution,
+      fps: fps,
+    );
+
+    var outputPath = '${outputDir.path}/$filename';
+    if (File(outputPath).existsSync()) {
+      final now = DateTime.now();
+      final timeStr =
+          '${now.hour.toString().padLeft(2, '0')}${now.minute.toString().padLeft(2, '0')}${now.second.toString().padLeft(2, '0')}';
+      final baseWithoutExt = filename.substring(0, filename.length - 4);
+      outputPath = '${outputDir.path}/$baseWithoutExt-$timeStr.mp4';
+    }
 
     if (!ffmpegReady) {
       // Fallback: simulated export for mobile environments without direct shell ffmpeg
