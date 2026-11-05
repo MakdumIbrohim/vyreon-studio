@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/aspect_ratio.dart';
 import '../models/project.dart';
@@ -63,13 +64,17 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final maxDialogHeight = min(680.0, screenHeight * 0.88);
+
     return Dialog(
       backgroundColor: AppTheme.surface,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540, maxHeight: 600),
+        constraints: BoxConstraints(maxWidth: 540, maxHeight: maxDialogHeight),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -95,7 +100,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // Project Name TextField
               TextField(
@@ -116,7 +121,7 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
                 ),
               ),
 
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
 
               const Text(
                 'ASPECT RATIO',
@@ -130,34 +135,39 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
               const SizedBox(height: 8),
 
-              // Aspect Ratio Grid / Wrap & Advanced Settings
+              // Aspect Ratio Grid & Advanced Settings
               Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      AspectRatioPicker(
-                        selectedRatio: _selectedRatio,
-                        onRatioSelected: (ratio) =>
-                            setState(() => _selectedRatio = ratio),
-                      ),
-                      const SizedBox(height: 16),
-                      ProjectDurationOptions(
-                        isExpanded: _showAdvanced,
-                        onToggle: () =>
-                            setState(() => _showAdvanced = !_showAdvanced),
-                        photoDuration: _defaultPhotoDuration,
-                        onPhotoDurationChanged: (val) =>
-                            setState(() => _defaultPhotoDuration = val),
-                        transitionDuration: _defaultTransitionDuration,
-                        onTransitionDurationChanged: (val) =>
-                            setState(() => _defaultTransitionDuration = val),
-                      ),
-                    ],
+                child: Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(right: 6, bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AspectRatioPicker(
+                          selectedRatio: _selectedRatio,
+                          onRatioSelected: (ratio) =>
+                              setState(() => _selectedRatio = ratio),
+                        ),
+                        const SizedBox(height: 14),
+                        ProjectDurationOptions(
+                          isExpanded: _showAdvanced,
+                          onToggle: () =>
+                              setState(() => _showAdvanced = !_showAdvanced),
+                          photoDuration: _defaultPhotoDuration,
+                          onPhotoDurationChanged: (val) =>
+                              setState(() => _defaultPhotoDuration = val),
+                          transitionDuration: _defaultTransitionDuration,
+                          onTransitionDurationChanged: (val) =>
+                              setState(() => _defaultTransitionDuration = val),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
 
+              const Divider(height: 1, color: AppTheme.divider),
               const SizedBox(height: 12),
 
               // Action Buttons

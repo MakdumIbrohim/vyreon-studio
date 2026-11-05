@@ -191,38 +191,44 @@ class _TimelineViewState extends State<TimelineView> {
                                       height: 1, color: AppTheme.divider),
 
                                   // Track 1: Layers Track
-                                  SecondaryTrackView(
-                                    clips: videoLayers,
-                                    scale: scale,
-                                    totalWidth: totalWidth,
-                                    trackLabel: 'LAYERS',
-                                    trackHeight: 38,
-                                    controller: controller,
-                                  ),
-
-                                  const Divider(
-                                      height: 1, color: AppTheme.divider),
+                                  if (videoLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: videoLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'LAYERS',
+                                      trackHeight: 38,
+                                      controller: controller,
+                                    ),
+                                  ],
 
                                   // Track 2: Text Track
-                                  SecondaryTrackView(
-                                    clips: textLayers,
-                                    scale: scale,
-                                    totalWidth: totalWidth,
-                                    trackLabel: 'TEXT',
-                                    trackHeight: 34,
-                                    controller: controller,
-                                  ),
-
-                                  const Divider(
-                                      height: 1, color: AppTheme.divider),
+                                  if (textLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: textLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'TEXT',
+                                      trackHeight: 34,
+                                      controller: controller,
+                                    ),
+                                  ],
 
                                   // Track 3: Audio Track
-                                  AudioTrackView(
-                                    clips: audioLayers,
-                                    scale: scale,
-                                    totalWidth: totalWidth,
-                                    controller: controller,
-                                  ),
+                                  if (audioLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    AudioTrackView(
+                                      clips: audioLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      controller: controller,
+                                    ),
+                                  ],
                                 ],
                               ),
 

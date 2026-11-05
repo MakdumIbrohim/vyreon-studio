@@ -45,12 +45,22 @@ class TimelineZoomToolbar extends StatelessWidget {
           const SizedBox(width: 4),
           // Zoom Slider
           SizedBox(
-            width: 90,
-            child: Slider(
-              value: scale,
-              min: 20.0,
-              max: 180.0,
-              onChanged: (val) => controller.setTimelineScale(val),
+            width: 80,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 2.5,
+                thumbColor: AppTheme.primary,
+                activeTrackColor: AppTheme.primary,
+                inactiveTrackColor: AppTheme.divider,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+              ),
+              child: Slider(
+                value: scale,
+                min: 20.0,
+                max: 180.0,
+                onChanged: (val) => controller.setTimelineScale(val),
+              ),
             ),
           ),
           const SizedBox(width: 4),

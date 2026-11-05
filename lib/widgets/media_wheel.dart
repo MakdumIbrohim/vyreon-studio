@@ -29,8 +29,10 @@ class MediaWheel extends StatelessWidget {
         return LayoutBuilder(
           builder: (context, constraints) {
             final dim = min(constraints.maxWidth, constraints.maxHeight);
-            final radius = (dim - 32) / 2;
-            if (radius <= 0) return const SizedBox.shrink();
+            if (dim <= 80) return const SizedBox.shrink();
+
+            final centerBtnSize = (dim * 0.25).clamp(42.0, 52.0);
+            final dialRadius = (dim / 2) * 0.62;
 
             return Center(
               child: SizedBox(
@@ -41,8 +43,8 @@ class MediaWheel extends StatelessWidget {
                   children: [
                     // Outer decorative circle with radial gradient
                     Container(
-                      width: dim - 12,
-                      height: dim - 12,
+                      width: dim - 10,
+                      height: dim - 10,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: const Color(0xFF16171E),
@@ -62,8 +64,8 @@ class MediaWheel extends StatelessWidget {
                     ),
 
                     // Top: MEDIA Button
-                    Positioned(
-                      top: 10,
+                    Transform.translate(
+                      offset: Offset(0, -dialRadius),
                       child: _buildDialButton(
                         icon: Icons.perm_media_outlined,
                         label: 'Media',
@@ -73,8 +75,8 @@ class MediaWheel extends StatelessWidget {
                     ),
 
                     // Left: LAYER Button
-                    Positioned(
-                      left: 10,
+                    Transform.translate(
+                      offset: Offset(-dialRadius, 0),
                       child: _buildDialButton(
                         icon: Icons.layers_outlined,
                         label: 'Layer',
@@ -84,8 +86,8 @@ class MediaWheel extends StatelessWidget {
                     ),
 
                     // Right: AUDIO Button
-                    Positioned(
-                      right: 10,
+                    Transform.translate(
+                      offset: Offset(dialRadius, 0),
                       child: _buildDialButton(
                         icon: Icons.audiotrack_outlined,
                         label: 'Audio',
@@ -95,8 +97,8 @@ class MediaWheel extends StatelessWidget {
                     ),
 
                     // Bottom: RECORD Button
-                    Positioned(
-                      bottom: 10,
+                    Transform.translate(
+                      offset: Offset(0, dialRadius),
                       child: _buildDialButton(
                         icon: Icons.mic_none_outlined,
                         label: 'Record',
@@ -109,8 +111,8 @@ class MediaWheel extends StatelessWidget {
                     GestureDetector(
                       onTap: controller.togglePlay,
                       child: Container(
-                        width: 64,
-                        height: 64,
+                        width: centerBtnSize,
+                        height: centerBtnSize,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: isPlaying
@@ -118,19 +120,19 @@ class MediaWheel extends StatelessWidget {
                               : AppTheme.primary,
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primary.withValues(alpha: 0.4),
+                              color: AppTheme.primary.withValues(alpha: 0.45),
                               blurRadius: 14,
                               spreadRadius: 2,
                             ),
                           ],
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.3),
+                            color: Colors.white.withValues(alpha: 0.35),
                             width: 2,
                           ),
                         ),
                         child: Icon(
                           isPlaying ? Icons.pause : Icons.play_arrow_rounded,
-                          size: 36,
+                          size: centerBtnSize * 0.58,
                           color: Colors.white,
                         ),
                       ),
@@ -155,15 +157,15 @@ class MediaWheel extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(24),
         splashColor: color.withValues(alpha: 0.3),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: color.withValues(alpha: 0.15),
@@ -172,16 +174,16 @@ class MediaWheel extends StatelessWidget {
                     width: 1,
                   ),
                 ),
-                child: Icon(icon, size: 22, color: color),
+                child: Icon(icon, size: 18, color: color),
               ),
-              const SizedBox(height: 3),
+              const SizedBox(height: 2),
               Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 10,
+                  fontSize: 9.5,
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textPrimary,
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.2,
                 ),
               ),
             ],
