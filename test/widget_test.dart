@@ -476,6 +476,22 @@ Second subtitle line''';
     final hasPerm = await AudioRecordingService.instance.hasPermission();
     expect(hasPerm, isA<bool>());
 
+    // Audio Denoise & Enhancer test
+    final audioWithDenoise = testBeatsAudio.copyWith(
+      denoisePreset: AudioDenoisePreset.voiceClarity,
+      enhancePreset: AudioEnhancePreset.warmVocal,
+    );
+    expect(audioWithDenoise.denoisePreset, AudioDenoisePreset.voiceClarity);
+    expect(audioWithDenoise.enhancePreset, AudioEnhancePreset.warmVocal);
+
+    // Serialization roundtrip
+    final jsonClip = audioWithDenoise.toJson();
+    final restoredClip = TimelineClip.fromJson(jsonClip);
+    expect(restoredClip.denoisePreset, AudioDenoisePreset.voiceClarity);
+    expect(restoredClip.enhancePreset, AudioEnhancePreset.warmVocal);
+
+    controller.updateClip(audioWithDenoise);
+
     controller.dispose();
   });
 }

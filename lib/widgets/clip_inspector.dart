@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
+import 'inspector/audio_denoise_section.dart';
 import 'inspector/audio_fx_section.dart';
 import 'inspector/audio_speed_section.dart';
 import 'inspector/chroma_key_section.dart';
@@ -210,8 +211,11 @@ class _ClipInspectorState extends State<ClipInspector> {
 
                 const SizedBox(height: 14),
 
-                // Audio Equalizer, Voice Changer, Reverb, Volume Envelope & Ducking
+                // Audio Equalizer, Voice Changer, Reverb, Denoise, Volume Envelope & Ducking
                 if (clip.type == ClipType.audio || clip.type == ClipType.video) ...[
+                  _buildSectionHeader('NOISE REDUCTION & VOCAL ENHANCER'),
+                  AudioDenoiseSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
                   _buildSectionHeader('EQ, VOICE CHANGER & REVERB'),
                   AudioFxSection(controller: controller, clip: clip),
                   const SizedBox(height: 14),

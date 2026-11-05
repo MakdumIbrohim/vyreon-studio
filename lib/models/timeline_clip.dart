@@ -83,6 +83,8 @@ class TimelineClip {
   final double duckingLevel;
   final ClipCropMask cropMask;
   final AudioReverbPreset reverbPreset;
+  final AudioDenoisePreset denoisePreset;
+  final AudioEnhancePreset enhancePreset;
   final String textAlign;
   final bool isTextBackgroundEnabled;
   final int textBackgroundColor;
@@ -153,6 +155,8 @@ class TimelineClip {
     this.duckingLevel = 0.25,
     this.cropMask = const ClipCropMask(),
     this.reverbPreset = AudioReverbPreset.none,
+    this.denoisePreset = AudioDenoisePreset.none,
+    this.enhancePreset = AudioEnhancePreset.none,
     this.textAlign = 'center',
     this.isTextBackgroundEnabled = false,
     this.textBackgroundColor = 0x80000000,
@@ -340,6 +344,8 @@ class TimelineClip {
     double? duckingLevel,
     ClipCropMask? cropMask,
     AudioReverbPreset? reverbPreset,
+    AudioDenoisePreset? denoisePreset,
+    AudioEnhancePreset? enhancePreset,
     String? textAlign,
     bool? isTextBackgroundEnabled,
     int? textBackgroundColor,
@@ -411,6 +417,8 @@ class TimelineClip {
       duckingLevel: duckingLevel ?? this.duckingLevel,
       cropMask: cropMask ?? this.cropMask,
       reverbPreset: reverbPreset ?? this.reverbPreset,
+      denoisePreset: denoisePreset ?? this.denoisePreset,
+      enhancePreset: enhancePreset ?? this.enhancePreset,
       textAlign: textAlign ?? this.textAlign,
       isTextBackgroundEnabled:
           isTextBackgroundEnabled ?? this.isTextBackgroundEnabled,
@@ -486,6 +494,8 @@ class TimelineClip {
     'duckingLevel': duckingLevel,
     'cropMask': cropMask.toJson(),
     'reverbPreset': reverbPreset.name,
+    'denoisePreset': denoisePreset.name,
+    'enhancePreset': enhancePreset.name,
     'textAlign': textAlign,
     'isTextBackgroundEnabled': isTextBackgroundEnabled,
     'textBackgroundColor': textBackgroundColor,
@@ -619,6 +629,14 @@ class TimelineClip {
       reverbPreset: AudioReverbPreset.values.firstWhere(
         (e) => e.name == json['reverbPreset'],
         orElse: () => AudioReverbPreset.none,
+      ),
+      denoisePreset: AudioDenoisePreset.values.firstWhere(
+        (e) => e.name == json['denoisePreset'],
+        orElse: () => AudioDenoisePreset.none,
+      ),
+      enhancePreset: AudioEnhancePreset.values.firstWhere(
+        (e) => e.name == json['enhancePreset'],
+        orElse: () => AudioEnhancePreset.none,
       ),
       textAlign: json['textAlign'] as String? ?? 'center',
       isTextBackgroundEnabled:
