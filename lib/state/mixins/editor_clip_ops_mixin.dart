@@ -1,7 +1,9 @@
 import 'dart:math';
+import '../../models/subtitle_entry.dart';
 import '../../models/timeline_clip.dart';
 import '../../services/audio_extraction_service.dart';
 import '../../services/audio_waveform_service.dart';
+import '../../services/srt_service.dart';
 import '../../services/video_reverse_service.dart';
 import '../editor_controller_base.dart';
 
@@ -460,5 +462,55 @@ mixin EditorClipOpsMixin on EditorControllerBase {
 
     updateClip(updated);
     return true;
+  }
+
+  void addSubtitle(SubtitleEntry entry) {
+    pushUndo();
+    final updated = List<SubtitleEntry>.from(project.subtitles)..add(entry);
+    updated.sort((a, b) => a.startMs.compareTo(b.startMs));
+    project = project.copyWith(
+      subtitles: updated,
+      modifiedAt: DateTime.now(),
+    );
+    notifyListeners();
+    autoSave();
+  }
+
+  void updateSubtitle(SubtitleEntry updatedEntry) {
+    pushUndo();
+    final list = List<SubtitleEntry>.from(project.subtitles);
+    final idx = list.indexWhere((s) => s.index == updatedEntry.index);
+    if (idx >= 0) {
+      list[idx] = updatedEntry;
+      list.sort((a, b) => a.startMs.compareTo(b.startMs));
+      project = project.copyWith(
+        subtitles: list,
+        modifiedAt: DateTime.now(),
+      );
+      notifyListeners();
+      autoSave();
+    }
+  }
+
+  void deleteSubtitle(int index) {
+    pushUndo();
+    final list = project.subtitles.where((s) => s.index != index).toList();
+    project = project.copyWith(
+      subtitles: list,
+      modifiedAt: DateTime.now(),
+    );
+    notifyListeners();
+    autoSave();
+  }
+
+  void importSrt(String srtContent) {
+    pushUndo();
+    final entries = SrtService.parseSrt(srtContent);
+    project = project.copyWith(
+      subtitles: entries,
+      modifiedAt: DateTime.now(),
+    );
+    notifyListeners();
+    autoSave();
   }
 }

@@ -3,10 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vyreon_studio/main.dart';
 import 'package:vyreon_studio/models/aspect_ratio.dart';
 import 'package:vyreon_studio/models/project.dart';
+import 'package:vyreon_studio/models/subtitle_entry.dart';
 import 'package:vyreon_studio/models/timeline_clip.dart';
 import 'package:vyreon_studio/screens/editor_screen.dart';
 import 'package:vyreon_studio/services/audio_waveform_service.dart';
 import 'package:vyreon_studio/services/rust_engine_service.dart';
+import 'package:vyreon_studio/services/srt_service.dart';
 import 'package:vyreon_studio/services/video_thumbnail_service.dart';
 import 'package:vyreon_studio/services/project_storage_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
@@ -323,6 +325,39 @@ void main() {
     );
     expect(reverbAudio.reverbPreset, AudioReverbPreset.cathedral);
     expect(reverbAudio.reverbPreset.ffmpegFilter, contains('aecho'));
+
+    // Subtitle & SRT Parser / Exporter test
+    const rawSrt = '''1
+00:00:01,000 --> 00:00:04,500
+Hello Vyreon!
+
+2
+00:00:05,000 --> 00:00:08,200
+Second subtitle line''';
+
+    final parsedSubtitles = SrtService.parseSrt(rawSrt);
+    expect(parsedSubtitles.length, 2);
+    expect(parsedSubtitles.first.text, 'Hello Vyreon!');
+    expect(parsedSubtitles.first.startMs, 1000);
+    expect(parsedSubtitles.first.endMs, 4500);
+
+    final exportedSrt = SrtService.exportSrt(parsedSubtitles);
+    expect(exportedSrt, contains('Hello Vyreon!'));
+    expect(exportedSrt, contains('00:00:01,000 --> 00:00:04,500'));
+
+    controller.importSrt(rawSrt);
+    expect(controller.project.subtitles.length, 2);
+
+    controller.addSubtitle(const SubtitleEntry(
+      index: 3,
+      startMs: 9000,
+      endMs: 12000,
+      text: 'Third line',
+    ));
+    expect(controller.project.subtitles.length, 3);
+
+    controller.deleteSubtitle(3);
+    expect(controller.project.subtitles.length, 2);
 
     controller.dispose();
   });

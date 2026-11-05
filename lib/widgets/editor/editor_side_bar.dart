@@ -7,6 +7,7 @@ class EditorSideBar extends StatelessWidget {
   final bool isFullscreenPreview;
   final VoidCallback onToggleFullscreen;
   final VoidCallback onCaptureSnapshot;
+  final VoidCallback onOpenSubtitles;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenExport;
   final VoidCallback onBack;
@@ -17,6 +18,7 @@ class EditorSideBar extends StatelessWidget {
     required this.isFullscreenPreview,
     required this.onToggleFullscreen,
     required this.onCaptureSnapshot,
+    required this.onOpenSubtitles,
     required this.onOpenSettings,
     required this.onOpenExport,
     required this.onBack,
@@ -51,54 +53,74 @@ class EditorSideBar extends StatelessWidget {
 
               const Divider(height: 12, color: AppTheme.divider),
 
-              // Undo
-              IconButton(
-                icon: const Icon(Icons.undo, size: 20),
-                color: canUndo ? AppTheme.textPrimary : AppTheme.textMuted,
-                tooltip: 'Undo',
-                onPressed: canUndo ? controller.undo : null,
-              ),
+              // Scrollable Actions
+              Expanded(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      // Undo
+                      IconButton(
+                        icon: const Icon(Icons.undo, size: 20),
+                        color: canUndo
+                            ? AppTheme.textPrimary
+                            : AppTheme.textMuted,
+                        tooltip: 'Undo',
+                        onPressed: canUndo ? controller.undo : null,
+                      ),
 
-              // Redo
-              IconButton(
-                icon: const Icon(Icons.redo, size: 20),
-                color: canRedo ? AppTheme.textPrimary : AppTheme.textMuted,
-                tooltip: 'Redo',
-                onPressed: canRedo ? controller.redo : null,
-              ),
+                      // Redo
+                      IconButton(
+                        icon: const Icon(Icons.redo, size: 20),
+                        color: canRedo
+                            ? AppTheme.textPrimary
+                            : AppTheme.textMuted,
+                        tooltip: 'Redo',
+                        onPressed: canRedo ? controller.redo : null,
+                      ),
 
-              // Frame Snapshot
-              IconButton(
-                icon: const Icon(Icons.camera_alt_outlined, size: 20),
-                color: AppTheme.textPrimary,
-                tooltip: 'Capture Frame',
-                onPressed: onCaptureSnapshot,
-              ),
+                      // Frame Snapshot
+                      IconButton(
+                        icon: const Icon(Icons.camera_alt_outlined, size: 20),
+                        color: AppTheme.textPrimary,
+                        tooltip: 'Capture Frame',
+                        onPressed: onCaptureSnapshot,
+                      ),
 
-              // Master Settings
-              IconButton(
-                icon: const Icon(Icons.settings_outlined, size: 20),
-                color: AppTheme.textPrimary,
-                tooltip: 'Master Settings',
-                onPressed: onOpenSettings,
-              ),
+                      // Subtitles & SRT
+                      IconButton(
+                        icon: const Icon(Icons.subtitles_outlined, size: 20),
+                        color: AppTheme.textPrimary,
+                        tooltip: 'Subtitles & SRT',
+                        onPressed: onOpenSubtitles,
+                      ),
 
-              // Fullscreen Toggle
-              IconButton(
-                icon: Icon(
-                  isFullscreenPreview
-                      ? Icons.fullscreen_exit
-                      : Icons.fullscreen,
-                  size: 20,
+                      // Master Settings
+                      IconButton(
+                        icon: const Icon(Icons.settings_outlined, size: 20),
+                        color: AppTheme.textPrimary,
+                        tooltip: 'Master Settings',
+                        onPressed: onOpenSettings,
+                      ),
+
+                      // Fullscreen Toggle
+                      IconButton(
+                        icon: Icon(
+                          isFullscreenPreview
+                              ? Icons.fullscreen_exit
+                              : Icons.fullscreen,
+                          size: 20,
+                        ),
+                        color: isFullscreenPreview
+                            ? AppTheme.primary
+                            : AppTheme.textPrimary,
+                        tooltip: 'Toggle Fullscreen',
+                        onPressed: onToggleFullscreen,
+                      ),
+                    ],
+                  ),
                 ),
-                color: isFullscreenPreview
-                    ? AppTheme.primary
-                    : AppTheme.textPrimary,
-                tooltip: 'Toggle Fullscreen',
-                onPressed: onToggleFullscreen,
               ),
-
-              const Spacer(),
 
               // Export / Render Button (Bottom of Action Bar)
               Container(

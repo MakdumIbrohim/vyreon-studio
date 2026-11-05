@@ -8,6 +8,7 @@ class EditorTopBar extends StatelessWidget {
   final bool isFullscreenPreview;
   final VoidCallback onToggleFullscreen;
   final VoidCallback onCaptureSnapshot;
+  final VoidCallback onOpenSubtitles;
   final VoidCallback onOpenSettings;
   final VoidCallback onOpenExport;
   final VoidCallback onBack;
@@ -19,6 +20,7 @@ class EditorTopBar extends StatelessWidget {
     required this.isFullscreenPreview,
     required this.onToggleFullscreen,
     required this.onCaptureSnapshot,
+    required this.onOpenSubtitles,
     required this.onOpenSettings,
     required this.onOpenExport,
     required this.onBack,
@@ -88,6 +90,7 @@ class EditorTopBar extends StatelessWidget {
                 color: AppTheme.surfaceVariant,
                 onSelected: (val) {
                   if (val == 'snapshot') onCaptureSnapshot();
+                  if (val == 'subtitles') onOpenSubtitles();
                   if (val == 'settings') onOpenSettings();
                   if (val == 'fullscreen') onToggleFullscreen();
                 },
@@ -100,6 +103,19 @@ class EditorTopBar extends StatelessWidget {
                             size: 16, color: Colors.white),
                         SizedBox(width: 8),
                         Text('Capture Frame',
+                            style:
+                                TextStyle(fontSize: 12, color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'subtitles',
+                    child: Row(
+                      children: [
+                        Icon(Icons.subtitles_outlined,
+                            size: 16, color: Colors.white),
+                        SizedBox(width: 8),
+                        Text('Subtitles & SRT',
                             style:
                                 TextStyle(fontSize: 12, color: Colors.white)),
                       ],

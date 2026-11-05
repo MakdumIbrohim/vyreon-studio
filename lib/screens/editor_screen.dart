@@ -8,6 +8,7 @@ import '../widgets/clip_inspector.dart';
 import '../widgets/editor/editor_side_bar.dart';
 import '../widgets/editor/editor_top_bar.dart';
 import '../widgets/editor/snapshot_modal_sheet.dart';
+import '../widgets/editor/subtitle_modal_sheet.dart';
 import '../widgets/editor/voiceover_modal_sheet.dart';
 import '../widgets/media_wheel.dart';
 import '../widgets/preview_player.dart';
@@ -74,6 +75,10 @@ class _EditorScreenState extends State<EditorScreen> {
     SnapshotModalSheet.show(context, _controller);
   }
 
+  void _openSubtitles() {
+    SubtitleModalSheet.show(context, _controller);
+  }
+
   Future<void> _openSettings() async {
     final updated = await showDialog(
       context: context,
@@ -120,6 +125,7 @@ class _EditorScreenState extends State<EditorScreen> {
           isFullscreenPreview: _isFullscreenPreview,
           onToggleFullscreen: _toggleFullscreen,
           onCaptureSnapshot: _captureSnapshot,
+          onOpenSubtitles: _openSubtitles,
           onOpenSettings: _openSettings,
           onOpenExport: _openExport,
           onBack: () => Navigator.of(context).pop(),
@@ -184,6 +190,7 @@ class _EditorScreenState extends State<EditorScreen> {
           isFullscreenPreview: _isFullscreenPreview,
           onToggleFullscreen: _toggleFullscreen,
           onCaptureSnapshot: _captureSnapshot,
+          onOpenSubtitles: _openSubtitles,
           onOpenSettings: _openSettings,
           onOpenExport: _openExport,
           onBack: () => Navigator.of(context).pop(),

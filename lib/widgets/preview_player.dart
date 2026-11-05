@@ -117,6 +117,38 @@ class PreviewPlayer extends StatelessWidget {
                           layer: controller.selectedClip!,
                           playheadMs: playhead,
                         ),
+
+                      // Subtitle Overlay (Bottom Centered)
+                      for (final sub in project.subtitles)
+                        if (playhead >= sub.startMs && playhead < sub.endMs)
+                          Positioned(
+                            left: 20,
+                            right: 20,
+                            bottom: 24,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.75),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  sub.text,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    shadows: [
+                                      Shadow(
+                                          blurRadius: 2, color: Colors.black),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                     ],
                   ),
                 ),

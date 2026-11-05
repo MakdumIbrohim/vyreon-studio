@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'aspect_ratio.dart';
 import 'project_settings.dart';
+import 'subtitle_entry.dart';
 import 'timeline_clip.dart';
 
 class Project {
@@ -11,6 +12,7 @@ class Project {
   final DateTime modifiedAt;
   final ProjectSettings settings;
   final List<TimelineClip> clips;
+  final List<SubtitleEntry> subtitles;
 
   const Project({
     required this.id,
@@ -20,6 +22,7 @@ class Project {
     required this.modifiedAt,
     this.settings = const ProjectSettings(),
     this.clips = const [],
+    this.subtitles = const [],
   });
 
   int get totalDurationMs {
@@ -46,6 +49,7 @@ class Project {
     DateTime? modifiedAt,
     ProjectSettings? settings,
     List<TimelineClip>? clips,
+    List<SubtitleEntry>? subtitles,
   }) {
     return Project(
       id: id ?? this.id,
@@ -55,6 +59,7 @@ class Project {
       modifiedAt: modifiedAt ?? this.modifiedAt,
       settings: settings ?? this.settings,
       clips: clips ?? this.clips,
+      subtitles: subtitles ?? this.subtitles,
     );
   }
 
@@ -84,6 +89,7 @@ class Project {
     'modifiedAt': modifiedAt.toIso8601String(),
     'settings': settings.toJson(),
     'clips': clips.map((c) => c.toJson()).toList(),
+    'subtitles': subtitles.map((s) => s.toJson()).toList(),
   };
 
   factory Project.fromJson(Map<String, dynamic> json) {
@@ -104,6 +110,10 @@ class Project {
           : const ProjectSettings(),
       clips: (json['clips'] as List<dynamic>?)
               ?.map((c) => TimelineClip.fromJson(c as Map<String, dynamic>))
+              .toList() ??
+          [],
+      subtitles: (json['subtitles'] as List<dynamic>?)
+              ?.map((s) => SubtitleEntry.fromJson(s as Map<String, dynamic>))
               .toList() ??
           [],
     );
