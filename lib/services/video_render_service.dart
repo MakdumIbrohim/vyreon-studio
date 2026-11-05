@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import '../models/aspect_ratio.dart';
 import '../models/project.dart';
-import '../models/timeline_clip.dart';
+import 'ffmpeg_graph_builder.dart';
 
 class RenderResult {
   final bool success;
@@ -30,14 +30,6 @@ class VideoRenderService {
     } catch (_) {
       return false;
     }
-  }
-
-  String _colorToHex(int argb) {
-    // Return RRGGBB format for FFmpeg
-    final r = (argb >> 16) & 0xFF;
-    final g = (argb >> 8) & 0xFF;
-    final b = argb & 0xFF;
-    return '0x${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}';
   }
 
   (int, int) _getDimensions(ProjectAspectRatio ratio, String res) {
@@ -79,8 +71,10 @@ class VideoRenderService {
       } catch (_) {}
     }
 
-    final sanitizedName = project.name.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
-    final outputPath = '${outputDir.path}/${sanitizedName}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final sanitizedName =
+        project.name.replaceAll(RegExp(r'[^a-zA-Z0-9_\-]'), '_');
+    final outputPath =
+        '${outputDir.path}/${sanitizedName}_${DateTime.now().millisecondsSinceEpoch}.mp4';
 
     if (!ffmpegReady) {
       // Fallback: simulated export for mobile environments without direct shell ffmpeg
@@ -91,7 +85,8 @@ class VideoRenderService {
       return RenderResult(
         success: true,
         outputPath: outputPath,
-        fileSize: (bitrateMbps * (project.totalDurationMs / 1000) * 125000).round(),
+        fileSize:
+            (bitrateMbps * (project.totalDurationMs / 1000) * 125000).round(),
       );
     }
 
@@ -106,41 +101,22 @@ class VideoRenderService {
       );
     }
 
-    final args = <String>['-y'];
-    final filterComplex = <String>[];
-    int inputIndex = 0;
+    // Build complete multi-layer filter complex graph
+    final graph = FfmpegGraphBuilder.buildGraph(
+      project: project,
+      width: width,
+      height: height,
+      fps: fps,
+    );
 
-    for (final clip in primaries) {
-      final durSec = (clip.durationMs / 1000.0).toStringAsFixed(3);
-      if (clip.assetPath != null && File(clip.assetPath!).existsSync()) {
-        if (clip.type == ClipType.image) {
-          args.addAll(['-loop', '1', '-t', durSec, '-i', clip.assetPath!]);
-        } else {
-          final inSec = (clip.sourceInMs / 1000.0).toStringAsFixed(3);
-          args.addAll(['-ss', inSec, '-t', durSec, '-i', clip.assetPath!]);
-        }
-      } else {
-        final hex = _colorToHex(clip.colorValue);
-        args.addAll([
-          '-f',
-          'lavfi',
-          '-i',
-          'color=c=$hex:s=${width}x$height:d=$durSec',
-        ]);
-      }
-      filterComplex.add('[$inputIndex:v]scale=$width:$height:force_original_aspect_ratio=decrease,pad=$width:$height:(ow-iw)/2:(oh-ih)/2,setsar=1[v$inputIndex];');
-      inputIndex++;
-    }
-
-    // Concatenate all primary video segments
-    final concatInputs = List.generate(primaries.length, (i) => '[v$i]').join('');
-    filterComplex.add('${concatInputs}concat=n=${primaries.length}:v=1:a=0[outv]');
-
-    args.addAll([
+    final args = <String>[
+      ...graph.inputArgs,
       '-filter_complex',
-      filterComplex.join(''),
+      graph.filterComplex,
       '-map',
-      '[outv]',
+      '[${graph.videoMap}]',
+      '-map',
+      '[${graph.audioMap}]',
       '-c:v',
       'libx264',
       '-pix_fmt',
@@ -151,15 +127,18 @@ class VideoRenderService {
       '${bitrateMbps.toInt()}M',
       '-preset',
       'veryfast',
+      '-c:a',
+      'aac',
+      '-b:a',
+      '192k',
       outputPath,
-    ]);
+    ];
 
     try {
       final process = await Process.start('ffmpeg', args);
       final totalSec = project.totalDurationMs / 1000.0;
 
       process.stderr.transform(utf8.decoder).listen((data) {
-        // Parse time=HH:MM:SS.ms from ffmpeg progress
         final match = RegExp(r'time=(\d+):(\d+):(\d+\.\d+)').firstMatch(data);
         if (match != null && totalSec > 0) {
           final h = double.tryParse(match.group(1)!) ?? 0;
@@ -194,6 +173,13 @@ class VideoRenderService {
         outputPath: outputPath,
         error: e.toString(),
       );
+    } finally {
+      // Clean up temporary files (such as exported .srt)
+      for (final tempFile in graph.tempFilesToClean) {
+        try {
+          if (tempFile.existsSync()) tempFile.deleteSync();
+        } catch (_) {}
+      }
     }
   }
 }
