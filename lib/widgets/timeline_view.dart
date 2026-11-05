@@ -85,13 +85,16 @@ class _TimelineViewState extends State<TimelineView> {
         final primaryClips = project.primaryClips;
         final secondaryClips = project.secondaryClips;
 
-        final videoLayers = secondaryClips
+        final videoLayers =
+            secondaryClips.where((c) => c.type == ClipType.video).toList();
+
+        final imageLayers = secondaryClips
             .where((c) =>
-                c.type == ClipType.video ||
-                c.type == ClipType.image ||
-                c.type == ClipType.color ||
-                c.type == ClipType.sticker)
+                c.type == ClipType.image || c.type == ClipType.color)
             .toList();
+
+        final stickerLayers =
+            secondaryClips.where((c) => c.type == ClipType.sticker).toList();
 
         final textLayers =
             secondaryClips.where((c) => c.type == ClipType.text).toList();
@@ -190,7 +193,7 @@ class _TimelineViewState extends State<TimelineView> {
                                   const Divider(
                                       height: 1, color: AppTheme.divider),
 
-                                  // Track 1: Layers Track
+                                  // Track 1: Video Layers
                                   if (videoLayers.isNotEmpty) ...[
                                     const Divider(
                                         height: 1, color: AppTheme.divider),
@@ -198,13 +201,44 @@ class _TimelineViewState extends State<TimelineView> {
                                       clips: videoLayers,
                                       scale: scale,
                                       totalWidth: totalWidth,
-                                      trackLabel: 'LAYERS',
+                                      trackLabel: 'VIDEO LAYER',
+                                      trackIcon: Icons.videocam,
+                                      trackHeight: 44,
+                                      controller: controller,
+                                    ),
+                                  ],
+
+                                  // Track 2: Image / Overlay Layers
+                                  if (imageLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: imageLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'IMAGE / OVERLAY',
+                                      trackIcon: Icons.image,
+                                      trackHeight: 44,
+                                      controller: controller,
+                                    ),
+                                  ],
+
+                                  // Track 3: Sticker / Graphics Track
+                                  if (stickerLayers.isNotEmpty) ...[
+                                    const Divider(
+                                        height: 1, color: AppTheme.divider),
+                                    SecondaryTrackView(
+                                      clips: stickerLayers,
+                                      scale: scale,
+                                      totalWidth: totalWidth,
+                                      trackLabel: 'STICKER',
+                                      trackIcon: Icons.auto_awesome,
                                       trackHeight: 38,
                                       controller: controller,
                                     ),
                                   ],
 
-                                  // Track 2: Text Track
+                                  // Track 4: Text Track
                                   if (textLayers.isNotEmpty) ...[
                                     const Divider(
                                         height: 1, color: AppTheme.divider),
@@ -213,12 +247,13 @@ class _TimelineViewState extends State<TimelineView> {
                                       scale: scale,
                                       totalWidth: totalWidth,
                                       trackLabel: 'TEXT',
+                                      trackIcon: Icons.title,
                                       trackHeight: 34,
                                       controller: controller,
                                     ),
                                   ],
 
-                                  // Track 3: Audio Track
+                                  // Track 5: Audio Track
                                   if (audioLayers.isNotEmpty) ...[
                                     const Divider(
                                         height: 1, color: AppTheme.divider),

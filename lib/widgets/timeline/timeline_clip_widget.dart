@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../models/timeline_clip.dart';
+import '../../services/video_thumbnail_service.dart';
 import '../../state/editor_controller.dart';
 import '../../theme/app_theme.dart';
 import 'timeline_painters.dart';
@@ -65,6 +67,28 @@ class TimelineClipWidget extends StatelessWidget {
           child: Stack(
             fit: StackFit.expand,
             children: [
+              // Media Thumbnail/Preview based on clip media type
+              ClipRRect(
+                borderRadius: BorderRadius.circular(5),
+                child: _buildMediaBackground(clip),
+              ),
+
+              // Gradient Overlay for text readability
+              if (clip.type != ClipType.audio && !isAudio)
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(5),
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withValues(alpha: 0.65),
+                        Colors.black.withValues(alpha: 0.25),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.45, 1.0],
+                    ),
+                  ),
+                ),
+
               // Waveform pattern for audio
               if (isAudio || clip.type == ClipType.audio)
                 CustomPaint(
@@ -206,5 +230,52 @@ class TimelineClipWidget extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildMediaBackground(TimelineClip clip) {
+    if (clip.type == ClipType.image && clip.assetPath != null) {
+      final file = File(clip.assetPath!);
+      if (file.existsSync()) {
+        return Opacity(
+          opacity: 0.6,
+          child: Image.file(
+            file,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+          ),
+        );
+      }
+    } else if (clip.type == ClipType.video && clip.assetPath != null) {
+      final file = File(clip.assetPath!);
+      if (file.existsSync()) {
+        return Opacity(
+          opacity: 0.6,
+          child: FutureBuilder<File?>(
+            future: VideoThumbnailService().getThumbnailFile(
+              clip.assetPath!,
+              atMs: clip.sourceInMs,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.hasData &&
+                  snapshot.data != null &&
+                  snapshot.data!.existsSync()) {
+                return Image.file(
+                  snapshot.data!,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        );
+      }
+    } else if (clip.type == ClipType.color) {
+      return Container(
+        color: Color(clip.colorValue).withValues(alpha: 0.65),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }
