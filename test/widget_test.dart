@@ -570,6 +570,49 @@ Second subtitle line''';
         saturationPercent: 15,
       );
       expect(matrix.length, 20);
+
+      // Static vs Non-static Clip Duration Stretch Test
+      const staticImage = TimelineClip(
+        id: 'img_test',
+        name: 'test.jpg',
+        type: ClipType.image,
+        startMs: 0,
+        durationMs: 4000,
+        sourceDurationMs: 4000,
+      );
+      const staticColor = TimelineClip(
+        id: 'col_test',
+        name: 'Solid Red',
+        type: ClipType.color,
+        startMs: 0,
+        durationMs: 3000,
+        sourceDurationMs: 3000,
+      );
+      const videoClip = TimelineClip(
+        id: 'vid_test',
+        name: 'clip.mp4',
+        type: ClipType.video,
+        startMs: 0,
+        durationMs: 5000,
+        sourceDurationMs: 5000,
+      );
+      const audioClip = TimelineClip(
+        id: 'aud_test',
+        name: 'bgm.mp3',
+        type: ClipType.audio,
+        startMs: 0,
+        durationMs: 6000,
+        sourceDurationMs: 6000,
+      );
+
+      expect(staticImage.isStatic, true);
+      expect(staticColor.isStatic, true);
+      expect(videoClip.isStatic, false);
+      expect(audioClip.isStatic, false);
+
+      final stretchedImage = staticImage.copyWith(durationMs: 8000);
+      expect(stretchedImage.durationMs, 8000);
+      controller.updateClipLive(stretchedImage);
     }
 
     controller.dispose();

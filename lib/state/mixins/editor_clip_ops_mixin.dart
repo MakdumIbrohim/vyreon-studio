@@ -78,6 +78,22 @@ mixin EditorClipOpsMixin on EditorControllerBase {
     }
   }
 
+  void updateClipLive(TimelineClip updated) {
+    final index = project.clips.indexWhere((c) => c.id == updated.id);
+    if (index >= 0) {
+      final newClips = List<TimelineClip>.from(project.clips);
+      newClips[index] = updated;
+      project = project.copyWith(
+        clips: newClips,
+        modifiedAt: DateTime.now(),
+      );
+      if (updated.isPrimary) {
+        project = project.packPrimaryClips();
+      }
+      notifyListeners();
+    }
+  }
+
   void splitClipAtPlayhead(String clipId) {
     final clip = project.clips.firstWhere((c) => c.id == clipId);
     if (playheadMs <= clip.startMs || playheadMs >= clip.endMs) {

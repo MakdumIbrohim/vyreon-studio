@@ -169,6 +169,12 @@ class TimelineClip {
 
   int get endMs => startMs + durationMs;
 
+  bool get isStatic =>
+      type == ClipType.image ||
+      type == ClipType.color ||
+      type == ClipType.text ||
+      type == ClipType.sticker;
+
   Color get color => Color(colorValue);
 
   double getEffectiveSpeedAt(double progress) {
