@@ -4,6 +4,8 @@ import '../models/project.dart';
 import '../models/project_settings.dart';
 import '../models/timeline_clip.dart';
 import '../theme/app_theme.dart';
+import '../widgets/create_project/aspect_ratio_picker.dart';
+import '../widgets/create_project/project_duration_options.dart';
 
 class CreateProjectDialog extends StatefulWidget {
   const CreateProjectDialog({super.key});
@@ -43,7 +45,6 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
         defaultTransitionDuration: _defaultTransitionDuration,
       ),
       clips: [
-        // Seed initial color clip for immediate creative feedback
         TimelineClip(
           id: 'clip_intro_${now.millisecondsSinceEpoch}',
           name: 'Intro Backdrop',
@@ -129,146 +130,29 @@ class _CreateProjectDialogState extends State<CreateProjectDialog> {
 
               const SizedBox(height: 8),
 
-              // Aspect Ratio Grid / Wrap
+              // Aspect Ratio Grid / Wrap & Advanced Settings
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: ProjectAspectRatio.values.map((ratio) {
-                          final isSelected = _selectedRatio == ratio;
-                          return InkWell(
-                            onTap: () => setState(() => _selectedRatio = ratio),
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              width: 115,
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? AppTheme.primary.withValues(alpha: 0.15)
-                                    : AppTheme.surfaceVariant,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? AppTheme.primary
-                                      : Colors.transparent,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    ratio.icon,
-                                    size: 26,
-                                    color: isSelected
-                                        ? AppTheme.primary
-                                        : AppTheme.textSecondary,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    ratio.label,
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.bold,
-                                      color: isSelected
-                                          ? AppTheme.primary
-                                          : AppTheme.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    ratio.description,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 9,
-                                      color: AppTheme.textMuted,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                      AspectRatioPicker(
+                        selectedRatio: _selectedRatio,
+                        onRatioSelected: (ratio) =>
+                            setState(() => _selectedRatio = ratio),
                       ),
-
                       const SizedBox(height: 16),
-
-                      // Advanced Settings Accordion
-                      InkWell(
-                        onTap: () =>
+                      ProjectDurationOptions(
+                        isExpanded: _showAdvanced,
+                        onToggle: () =>
                             setState(() => _showAdvanced = !_showAdvanced),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _showAdvanced
-                                  ? Icons.keyboard_arrow_down
-                                  : Icons.keyboard_arrow_right,
-                              size: 20,
-                              color: AppTheme.textSecondary,
-                            ),
-                            const SizedBox(width: 4),
-                            const Text(
-                              'Advanced Settings',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
+                        photoDuration: _defaultPhotoDuration,
+                        onPhotoDurationChanged: (val) =>
+                            setState(() => _defaultPhotoDuration = val),
+                        transitionDuration: _defaultTransitionDuration,
+                        onTransitionDurationChanged: (val) =>
+                            setState(() => _defaultTransitionDuration = val),
                       ),
-
-                      if (_showAdvanced) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Default Photo Duration',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSecondary)),
-                            Text('${_defaultPhotoDuration.toStringAsFixed(1)}s',
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textPrimary)),
-                          ],
-                        ),
-                        Slider(
-                          value: _defaultPhotoDuration,
-                          min: 1.0,
-                          max: 15.0,
-                          onChanged: (val) =>
-                              setState(() => _defaultPhotoDuration = val),
-                        ),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Default Transition Duration',
-                                style: TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSecondary)),
-                            Text(
-                                '${_defaultTransitionDuration.toStringAsFixed(1)}s',
-                                style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textPrimary)),
-                          ],
-                        ),
-                        Slider(
-                          value: _defaultTransitionDuration,
-                          min: 0.5,
-                          max: 5.0,
-                          onChanged: (val) =>
-                              setState(() => _defaultTransitionDuration = val),
-                        ),
-                      ],
                     ],
                   ),
                 ),
