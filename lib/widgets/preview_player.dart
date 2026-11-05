@@ -7,15 +7,25 @@ import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/color_filters.dart';
 import 'preview/direct_manipulation_overlay.dart';
+import 'preview/eyedropper_overlay.dart';
 import 'preview/layer_animation_evaluator.dart';
 import 'preview/layer_content_builder.dart';
 import 'preview/preview_placeholders.dart';
 import 'preview/transition_renderer.dart';
 
-class PreviewPlayer extends StatelessWidget {
+class PreviewPlayer extends StatefulWidget {
   final EditorController controller;
 
   const PreviewPlayer({super.key, required this.controller});
+
+  @override
+  State<PreviewPlayer> createState() => _PreviewPlayerState();
+}
+
+class _PreviewPlayerState extends State<PreviewPlayer> {
+  final GlobalKey _previewRepaintKey = GlobalKey();
+
+  EditorController get controller => widget.controller;
 
   String _formatTimecode(int ms) {
     final totalSeconds = ms / 1000;
@@ -27,6 +37,7 @@ class PreviewPlayer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -59,19 +70,21 @@ class PreviewPlayer extends StatelessWidget {
               // Aspect ratio frame
               AspectRatio(
                 aspectRatio: aspectRatio,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF181920),
-                    border: Border.all(
-                      color: AppTheme.surfaceVariant.withValues(alpha: 0.5),
-                      width: 1,
+                child: RepaintBoundary(
+                  key: _previewRepaintKey,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF181920),
+                      border: Border.all(
+                        color: AppTheme.surfaceVariant.withValues(alpha: 0.5),
+                        width: 1,
+                      ),
                     ),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Primary Track Background with Transition
+                    clipBehavior: Clip.antiAlias,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Primary Track Background with Transition
                       if (activePrimary != null)
                         PrimaryTransitionRenderer.build(
                           project: project,
@@ -151,6 +164,16 @@ class PreviewPlayer extends StatelessWidget {
                           ),
                     ],
                   ),
+                ),
+              ),
+            ),
+
+            // Eyedropper Color Picker Loupe Overlay
+            if (controller.isEyedropperActive)
+              Positioned.fill(
+                child: EyedropperOverlay(
+                  controller: controller,
+                  repaintBoundaryKey: _previewRepaintKey,
                 ),
               ),
 

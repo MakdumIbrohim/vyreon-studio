@@ -409,6 +409,23 @@ Second subtitle line''';
     expect(importResult.project!.name, contains('(Imported)'));
     expect(importResult.project!.clips.length, controller.project.clips.length);
 
+    // Eyedropper Chroma Key Color Picker test
+    controller.selectClip(textClip.id);
+    controller.startEyedropper();
+    expect(controller.isEyedropperActive, true);
+
+    controller.eyedropperColor = 0xFF00FF7F;
+    expect(controller.eyedropperColor, 0xFF00FF7F);
+
+    controller.applyEyedropperColor();
+    expect(controller.isEyedropperActive, false);
+    final chromaClip = controller.project.clips.firstWhere((c) => c.id == textClip.id);
+    expect(chromaClip.chromaKeyColor, 0xFF00FF7F);
+
+    controller.startEyedropper();
+    controller.cancelEyedropper();
+    expect(controller.isEyedropperActive, false);
+
     controller.dispose();
   });
 }

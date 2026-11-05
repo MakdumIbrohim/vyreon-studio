@@ -17,6 +17,12 @@ abstract class EditorControllerBase extends ChangeNotifier {
   double get timelineScale;
   set timelineScale(double value);
 
+  bool get isEyedropperActive;
+  set isEyedropperActive(bool value);
+
+  int? get eyedropperColor;
+  set eyedropperColor(int? value);
+
   void pushUndo();
   void autoSave();
   void clampPlayhead();

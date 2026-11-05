@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/timeline_clip.dart';
 import '../../state/editor_controller.dart';
 import '../../theme/app_theme.dart';
+import 'chroma_color_picker_dialog.dart';
 import 'inspector_slider.dart';
 
 class ChromaKeySection extends StatelessWidget {
@@ -13,6 +14,24 @@ class ChromaKeySection extends StatelessWidget {
     required this.controller,
     required this.clip,
   });
+
+  String _toHex(int color) {
+    final r = (color >> 16) & 0xFF;
+    final g = (color >> 8) & 0xFF;
+    final b = color & 0xFF;
+    return '#${r.toRadixString(16).padLeft(2, '0')}${g.toRadixString(16).padLeft(2, '0')}${b.toRadixString(16).padLeft(2, '0')}'
+        .toUpperCase();
+  }
+
+  Future<void> _openColorPicker(BuildContext context) async {
+    final picked = await ChromaColorPickerDialog.show(
+      context,
+      clip.chromaKeyColor,
+    );
+    if (picked != null) {
+      controller.updateClip(clip.copyWith(chromaKeyColor: picked));
+    }
+  }
 
   Widget _buildKeyColorChip(String label, int colorVal) {
     final isSel = clip.chromaKeyColor == colorVal;
@@ -59,6 +78,8 @@ class ChromaKeySection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isEyedropperActive = controller.isEyedropperActive;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -90,11 +111,87 @@ class ChromaKeySection extends StatelessWidget {
           ),
           if (clip.isChromaKeyEnabled) ...[
             const SizedBox(height: 8),
-            const Text(
-              'Key Color:',
-              style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+
+            // Active Color Card with Eyedropper and Custom Picker buttons
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceVariant,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isEyedropperActive
+                      ? Colors.cyanAccent
+                      : Colors.transparent,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Color(clip.chromaKeyColor),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'KEY COLOR',
+                        style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textMuted),
+                      ),
+                      Text(
+                        _toHex(clip.chromaKeyColor),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  // Eyedropper Button
+                  IconButton(
+                    icon: Icon(
+                      Icons.colorize,
+                      size: 18,
+                      color: isEyedropperActive
+                          ? Colors.cyanAccent
+                          : AppTheme.primary,
+                    ),
+                    tooltip: 'Eyedropper: Pick color from preview',
+                    onPressed: () {
+                      if (isEyedropperActive) {
+                        controller.cancelEyedropper();
+                      } else {
+                        controller.startEyedropper();
+                      }
+                    },
+                  ),
+                  // Palette Dialog Button
+                  IconButton(
+                    icon: const Icon(Icons.palette,
+                        size: 18, color: Colors.white70),
+                    tooltip: 'Custom Color Palette',
+                    onPressed: () => _openColorPicker(context),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 6),
+
+            const SizedBox(height: 8),
+
+            // Quick Color Chips
             Row(
               children: [
                 _buildKeyColorChip('Green', 0xFF00FF00),

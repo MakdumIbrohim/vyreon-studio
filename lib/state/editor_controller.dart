@@ -17,6 +17,8 @@ class EditorController extends EditorControllerBase
   bool _isPlaying = false;
   String? _selectedClipId;
   double _timelineScale = 60.0;
+  bool _isEyedropperActive = false;
+  int? _eyedropperColor;
 
   EditorController(this._project);
 
@@ -58,6 +60,48 @@ class EditorController extends EditorControllerBase
   @override
   set timelineScale(double value) {
     _timelineScale = value;
+  }
+
+  @override
+  bool get isEyedropperActive => _isEyedropperActive;
+
+  @override
+  set isEyedropperActive(bool value) {
+    if (_isEyedropperActive != value) {
+      _isEyedropperActive = value;
+      notifyListeners();
+    }
+  }
+
+  @override
+  int? get eyedropperColor => _eyedropperColor;
+
+  @override
+  set eyedropperColor(int? value) {
+    if (_eyedropperColor != value) {
+      _eyedropperColor = value;
+      notifyListeners();
+    }
+  }
+
+  void startEyedropper() {
+    isEyedropperActive = true;
+    eyedropperColor = selectedClip?.chromaKeyColor ?? 0xFF00FF00;
+  }
+
+  void applyEyedropperColor() {
+    if (selectedClipId != null && eyedropperColor != null) {
+      final clip = selectedClip;
+      if (clip != null) {
+        updateClip(clip.copyWith(chromaKeyColor: eyedropperColor!));
+      }
+    }
+    isEyedropperActive = false;
+  }
+
+  void cancelEyedropper() {
+    isEyedropperActive = false;
+    eyedropperColor = null;
   }
 
   TimelineClip? get selectedClip {
