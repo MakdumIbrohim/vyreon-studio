@@ -6,8 +6,10 @@ import '../services/video_thumbnail_service.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import '../utils/color_filters.dart';
-import 'preview/clip_pattern_painter.dart';
 import 'preview/direct_manipulation_overlay.dart';
+import 'preview/layer_animation_evaluator.dart';
+import 'preview/layer_content_builder.dart';
+import 'preview/preview_placeholders.dart';
 import 'preview/transition_renderer.dart';
 
 class PreviewPlayer extends StatelessWidget {
@@ -85,14 +87,15 @@ class PreviewPlayer extends StatelessWidget {
                               Icon(
                                 Icons.movie_filter_outlined,
                                 size: 48,
-                                color: AppTheme.textMuted.withValues(alpha: 0.4),
+                                color:
+                                    AppTheme.textMuted.withValues(alpha: 0.4),
                               ),
                               const SizedBox(height: 8),
                               Text(
                                 'No Media at Current Time',
                                 style: TextStyle(
-                                  color:
-                                      AppTheme.textMuted.withValues(alpha: 0.6),
+                                  color: AppTheme.textMuted
+                                      .withValues(alpha: 0.6),
                                   fontSize: 13,
                                 ),
                               ),
@@ -195,8 +198,8 @@ class PreviewPlayer extends StatelessWidget {
         content = Image.file(
           file,
           fit: BoxFit.contain,
-          errorBuilder: (context, error, stackTrace) =>
-              _buildPlaceholderVisual(clip),
+          errorBuilder: (_, _, _) =>
+              PreviewPlaceholders.buildPlaceholderVisual(clip),
         );
       } else {
         final relMs = (controller.playheadMs - clip.startMs)
@@ -214,7 +217,8 @@ class PreviewPlayer extends StatelessWidget {
                   Image.file(
                     snapshot.data!,
                     fit: BoxFit.contain,
-                    errorBuilder: (_, _, _) => _buildVideoPlaceholder(clip),
+                    errorBuilder: (_, _, _) =>
+                        PreviewPlaceholders.buildVideoPlaceholder(clip),
                   ),
                   Positioned(
                     bottom: 8,
@@ -242,12 +246,12 @@ class PreviewPlayer extends StatelessWidget {
                 ],
               );
             }
-            return _buildVideoPlaceholder(clip);
+            return PreviewPlaceholders.buildVideoPlaceholder(clip);
           },
         );
       }
     } else {
-      content = _buildPlaceholderVisual(clip);
+      content = PreviewPlaceholders.buildPlaceholderVisual(clip);
     }
 
     if (filter != null) {
@@ -308,199 +312,17 @@ class PreviewPlayer extends StatelessWidget {
     );
   }
 
-  Widget _buildVideoPlaceholder(TimelineClip clip) {
-    return Container(
-      color: Colors.black87,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: Size.infinite,
-            painter: ClipPatternPainter(clip.color),
-          ),
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.videocam, size: 48, color: Colors.white70),
-              const SizedBox(height: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black54,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  clip.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderVisual(TimelineClip clip) {
-    return Container(
-      color: clip.color,
-      alignment: Alignment.center,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          CustomPaint(
-            size: Size.infinite,
-            painter: ClipPatternPainter(clip.color),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.4),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(clip.type.icon, size: 16, color: Colors.white70),
-                const SizedBox(width: 6),
-                Text(
-                  clip.name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildLayerVisual(TimelineClip layer, int playheadMs) {
     final filter = ColorFilterHelper.getPresetFilter(layer.filter);
-    final transform = layer.getInterpolatedTransform(playheadMs);
+    final baseTransform = layer.getInterpolatedTransform(playheadMs);
 
-    Widget layerWidget;
-    if (layer.type == ClipType.text) {
-      final shadows = <Shadow>[];
-      if (layer.isTextShadowEnabled) {
-        shadows.add(
-          Shadow(
-            color: Color(layer.textShadowColor),
-            blurRadius: layer.textShadowBlur,
-            offset: const Offset(2, 2),
-          ),
-        );
-      }
-      if (layer.isTextGlowEnabled) {
-        shadows.add(
-          Shadow(
-            color: Color(layer.textGlowColor),
-            blurRadius: layer.textGlowRadius,
-          ),
-        );
-      }
-      if (shadows.isEmpty) {
-        shadows.add(
-          Shadow(
-            color: Colors.black.withValues(alpha: 0.8),
-            blurRadius: 8,
-            offset: const Offset(2, 2),
-          ),
-        );
-      }
+    // Build raw layer content (Text, Sticker, Image, Video)
+    Widget layerWidget = LayerContentBuilder.build(
+      layer: layer,
+      playheadMs: playheadMs,
+    );
 
-      final textMain = Text(
-        layer.textContent,
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: layer.color,
-          fontSize: layer.fontSize,
-          fontWeight: FontWeight.bold,
-          shadows: shadows,
-        ),
-      );
-
-      if (layer.isTextOutlineEnabled) {
-        layerWidget = Stack(
-          alignment: Alignment.center,
-          children: [
-            Text(
-              layer.textContent,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: layer.fontSize,
-                fontWeight: FontWeight.bold,
-                foreground: Paint()
-                  ..style = PaintingStyle.stroke
-                  ..strokeWidth = layer.textOutlineWidth
-                  ..color = Color(layer.textOutlineColor),
-              ),
-            ),
-            textMain,
-          ],
-        );
-      } else {
-        layerWidget = textMain;
-      }
-    } else if (layer.type == ClipType.sticker) {
-      layerWidget = Text(
-        layer.textContent,
-        style: TextStyle(
-          fontSize: layer.fontSize * 1.5,
-          color: layer.color,
-          shadows: [
-            Shadow(
-              color: Colors.black.withValues(alpha: 0.8),
-              blurRadius: 10,
-            ),
-          ],
-        ),
-      );
-    } else {
-      final file = layer.assetPath != null ? File(layer.assetPath!) : null;
-      if (file != null && file.existsSync()) {
-        if (layer.type == ClipType.image) {
-          layerWidget = Image.file(
-            file,
-            fit: BoxFit.contain,
-            errorBuilder: (_, _, _) => _buildLayerPlaceholder(layer),
-          );
-        } else if (layer.type == ClipType.video) {
-          final relMs =
-              (playheadMs - layer.startMs).clamp(0, layer.durationMs);
-          layerWidget = FutureBuilder<File?>(
-            future: VideoThumbnailService()
-                .getThumbnailFile(layer.assetPath!, atMs: relMs),
-            builder: (context, snapshot) {
-              if (snapshot.hasData &&
-                  snapshot.data != null &&
-                  snapshot.data!.existsSync()) {
-                return Image.file(
-                  snapshot.data!,
-                  fit: BoxFit.contain,
-                  errorBuilder: (_, _, _) => _buildLayerPlaceholder(layer),
-                );
-              }
-              return _buildLayerPlaceholder(layer);
-            },
-          );
-        } else {
-          layerWidget = _buildLayerPlaceholder(layer);
-        }
-      } else {
-        layerWidget = _buildLayerPlaceholder(layer);
-      }
-    }
-
+    // Chroma Key
     if (layer.isChromaKeyEnabled) {
       final chromaFilter = ColorFilterHelper.getChromaKeyFilter(
         layer.chromaKeyColor,
@@ -513,6 +335,7 @@ class PreviewPlayer extends StatelessWidget {
       layerWidget = ColorFiltered(colorFilter: filter, child: layerWidget);
     }
 
+    // Crop & Shape Mask
     if (layer.cropMask.isMaskEnabled ||
         layer.cropMask.cropLeft > 0 ||
         layer.cropMask.cropTop > 0 ||
@@ -524,194 +347,25 @@ class PreviewPlayer extends StatelessWidget {
       );
     }
 
-    final relMs = (playheadMs - layer.startMs).clamp(0, layer.durationMs);
+    // Composite In/Out/Overall Animation & Keyframe transforms
+    final evaluated = LayerAnimationEvaluator.evaluate(
+      layer: layer,
+      playheadMs: playheadMs,
+      baseTransform: baseTransform,
+    );
 
-    // 1. In-Animation
-    double inOpacity = 1.0;
-    double inScale = 1.0;
-    double inOffsetX = 0.0;
-    double inOffsetY = 0.0;
-    if (layer.inAnimation != InAnimationType.none &&
-        layer.inDurationMs > 0 &&
-        relMs < layer.inDurationMs) {
-      final p = (relMs / layer.inDurationMs).clamp(0.0, 1.0);
-      switch (layer.inAnimation) {
-        case InAnimationType.fadeIn:
-          inOpacity = p;
-          break;
-        case InAnimationType.pop:
-          inScale = (p * 1.15).clamp(0.0, 1.0);
-          inOpacity = p;
-          break;
-        case InAnimationType.slideRight:
-          inOffsetX = (1.0 - p) * -1.5;
-          inOpacity = p;
-          break;
-        case InAnimationType.slideLeft:
-          inOffsetX = (1.0 - p) * 1.5;
-          inOpacity = p;
-          break;
-        case InAnimationType.slideUp:
-          inOffsetY = (1.0 - p) * 1.5;
-          inOpacity = p;
-          break;
-        case InAnimationType.slideDown:
-          inOffsetY = (1.0 - p) * -1.5;
-          inOpacity = p;
-          break;
-        case InAnimationType.drop:
-          inOffsetY = (1.0 - p) * -2.0;
-          inScale = 0.8 + (p * 0.2);
-          break;
-        case InAnimationType.scaleUp:
-          inScale = p * p;
-          inOpacity = p;
-          break;
-        case InAnimationType.none:
-          break;
-      }
-    }
-
-    // 2. Out-Animation
-    double outOpacity = 1.0;
-    double outScale = 1.0;
-    double outOffsetX = 0.0;
-    double outOffsetY = 0.0;
-    final outStartMs = layer.durationMs - layer.outDurationMs;
-    if (layer.outAnimation != OutAnimationType.none &&
-        layer.outDurationMs > 0 &&
-        relMs > outStartMs) {
-      final p = ((relMs - outStartMs) / layer.outDurationMs).clamp(0.0, 1.0);
-      switch (layer.outAnimation) {
-        case OutAnimationType.fadeOut:
-          outOpacity = 1.0 - p;
-          break;
-        case OutAnimationType.popDown:
-          outScale = 1.0 - (p * 0.8);
-          outOpacity = 1.0 - p;
-          break;
-        case OutAnimationType.slideRight:
-          outOffsetX = p * 1.5;
-          outOpacity = 1.0 - p;
-          break;
-        case OutAnimationType.slideLeft:
-          outOffsetX = p * -1.5;
-          outOpacity = 1.0 - p;
-          break;
-        case OutAnimationType.slideUp:
-          outOffsetY = p * -1.5;
-          outOpacity = 1.0 - p;
-          break;
-        case OutAnimationType.slideDown:
-          outOffsetY = p * 1.5;
-          outOpacity = 1.0 - p;
-          break;
-        case OutAnimationType.scaleDown:
-          outScale = (1.0 - p).clamp(0.0, 1.0);
-          outOpacity = 1.0 - p;
-          break;
-        case OutAnimationType.none:
-          break;
-      }
-    }
-
-    // 3. Overall-Animation
-    double overallScale = 1.0;
-    double overallRotation = 0.0;
-    double overallOffsetX = 0.0;
-    double overallOffsetY = 0.0;
-    double overallOpacity = 1.0;
-    if (layer.overallAnimation != OverallAnimationType.none) {
-      final t = relMs / 1000.0;
-      switch (layer.overallAnimation) {
-        case OverallAnimationType.blinkSlow:
-          overallOpacity = (sin(t * 3) > 0) ? 1.0 : 0.3;
-          break;
-        case OverallAnimationType.pulse:
-          overallScale = 1.0 + (sin(t * 4).abs() * 0.15);
-          break;
-        case OverallAnimationType.jitter:
-          overallOffsetX = sin(t * 25) * 0.05;
-          overallOffsetY = cos(t * 25) * 0.05;
-          break;
-        case OverallAnimationType.floating:
-          overallOffsetY = sin(t * 2) * 0.1;
-          break;
-        case OverallAnimationType.drifting:
-          overallOffsetX = sin(t * 1.5) * 0.12;
-          break;
-        case OverallAnimationType.squishing:
-          overallScale = 1.0 + (sin(t * 5) * 0.1);
-          break;
-        case OverallAnimationType.clockwiseSpin:
-          overallRotation = (t * 120) % 360;
-          break;
-        case OverallAnimationType.counterClockwiseSpin:
-          overallRotation = -(t * 120) % 360;
-          break;
-        case OverallAnimationType.none:
-          break;
-      }
-    }
-
-    final combinedScale = transform.scale * inScale * outScale * overallScale;
-    final combinedRotation = transform.rotation + overallRotation;
-    final combinedOpacity = (transform.opacity *
-            inOpacity *
-            outOpacity *
-            overallOpacity)
-        .clamp(0.0, 1.0);
-    final combinedOffsetX = (transform.offsetX +
-            inOffsetX +
-            outOffsetX +
-            overallOffsetX)
-        .clamp(-2.0, 2.0);
-    final combinedOffsetY = (transform.offsetY +
-            inOffsetY +
-            outOffsetY +
-            overallOffsetY)
-        .clamp(-2.0, 2.0);
-
-    // Apply interpolated keyframe transform and positioning
     return Positioned.fill(
       child: Align(
-        alignment: Alignment(combinedOffsetX, combinedOffsetY),
+        alignment: Alignment(evaluated.offsetX, evaluated.offsetY),
         child: Transform.rotate(
-          angle: combinedRotation * (pi / 180),
+          angle: evaluated.rotation * (pi / 180),
           child: Transform.scale(
-            scale: combinedScale,
+            scale: evaluated.scale,
             child: Opacity(
-              opacity: combinedOpacity,
+              opacity: evaluated.opacity,
               child: layerWidget,
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLayerPlaceholder(TimelineClip layer) {
-    return Container(
-      width: 140,
-      height: 100,
-      decoration: BoxDecoration(
-        color: layer.color,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        layer.name,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
         ),
       ),
     );
