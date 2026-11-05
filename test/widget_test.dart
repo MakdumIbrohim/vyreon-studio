@@ -511,6 +511,16 @@ Second subtitle line''';
     if (RustEngineService.instance.isAvailable) {
       expect(graded, isNotNull);
       expect(graded![0] > 100, true);
+
+      // Rust Engine Real-time Audio DSP Test
+      final audioSamples = Int16List.fromList([10, 20, 10000]);
+      final processedAudio = RustEngineService.instance.processAudioPcm16(
+        audioSamples,
+        volume: 1.5,
+        noiseGateThreshold: 0.05,
+      );
+      expect(processedAudio, isNotNull);
+      expect(processedAudio!.length, 3);
     }
 
     controller.dispose();

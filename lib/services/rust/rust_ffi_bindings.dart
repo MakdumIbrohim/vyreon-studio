@@ -122,6 +122,36 @@ typedef ApplyLutDart = int Function(
   double intensity,
 );
 
+// Audio DSP PCM16
+typedef AudioDspPcm16C = ffi.Int32 Function(
+  ffi.Pointer<ffi.Int16> samplesPtr,
+  ffi.Size samplesLen,
+  ffi.Float volume,
+  ffi.Float noiseGateThreshold,
+  ffi.Int32 enableHighpass,
+);
+typedef AudioDspPcm16Dart = int Function(
+  ffi.Pointer<ffi.Int16> samplesPtr,
+  int samplesLen,
+  double volume,
+  double noiseGateThreshold,
+  int enableHighpass,
+);
+
+// Audio DSP Float32
+typedef AudioDspF32C = ffi.Int32 Function(
+  ffi.Pointer<ffi.Float> samplesPtr,
+  ffi.Size samplesLen,
+  ffi.Float volume,
+  ffi.Float noiseGateThreshold,
+);
+typedef AudioDspF32Dart = int Function(
+  ffi.Pointer<ffi.Float> samplesPtr,
+  int samplesLen,
+  double volume,
+  double noiseGateThreshold,
+);
+
 class RustFfiBindings {
   static ffi.DynamicLibrary? loadLibrary() {
     try {

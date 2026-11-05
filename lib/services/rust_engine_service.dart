@@ -18,6 +18,8 @@ class RustEngineService {
   ChromaDart? _chromaFn;
   ColorGradeDart? _colorGradeFn;
   ApplyLutDart? _applyLutFn;
+  AudioDspPcm16Dart? _dspPcm16Fn;
+  AudioDspF32Dart? _dspF32Fn;
 
   bool get isAvailable => _lib != null;
 
@@ -32,6 +34,8 @@ class RustEngineService {
         _chromaFn = _lib!.lookupFunction<ChromaC, ChromaDart>('vyreon_chroma_key_alpha');
         _colorGradeFn = _lib!.lookupFunction<ColorGradeC, ColorGradeDart>('vyreon_color_grade_rgba');
         _applyLutFn = _lib!.lookupFunction<ApplyLutC, ApplyLutDart>('vyreon_apply_lut_3d_rgba');
+        _dspPcm16Fn = _lib!.lookupFunction<AudioDspPcm16C, AudioDspPcm16Dart>('vyreon_audio_dsp_process_pcm16');
+        _dspF32Fn = _lib!.lookupFunction<AudioDspF32C, AudioDspF32Dart>('vyreon_audio_dsp_process_f32');
       } catch (_) {
         // Partial load fallback
       }
@@ -229,6 +233,61 @@ class RustEngineService {
     } finally {
       malloc.free(pixPtr);
       malloc.free(lutPtr);
+    }
+    return null;
+  }
+
+  /// Real-time 16-bit PCM Audio DSP Processing (Volume, Noise Gate, Rumble Filter)
+  Int16List? processAudioPcm16(
+    Int16List samples, {
+    double volume = 1.0,
+    double noiseGateThreshold = 0.0,
+    bool enableHighpass = false,
+  }) {
+    if (_dspPcm16Fn == null || samples.isEmpty) return null;
+
+    final ptr = malloc<ffi.Int16>(samples.length);
+    try {
+      final list = ptr.asTypedList(samples.length);
+      list.setAll(0, samples);
+      final code = _dspPcm16Fn!(
+        ptr,
+        samples.length,
+        volume,
+        noiseGateThreshold,
+        enableHighpass ? 1 : 0,
+      );
+      if (code == 0) {
+        return Int16List.fromList(list);
+      }
+    } catch (_) {
+      return null;
+    } finally {
+      malloc.free(ptr);
+    }
+    return null;
+  }
+
+  /// Real-time Float32 PCM Audio DSP Processing
+  Float32List? processAudioF32(
+    Float32List samples, {
+    double volume = 1.0,
+    double noiseGateThreshold = 0.0,
+  }) {
+    if (_dspF32Fn == null || samples.isEmpty) return null;
+
+    final ptr = malloc<ffi.Float>(samples.length);
+    try {
+      final list = ptr.asTypedList(samples.length);
+      list.setAll(0, samples);
+      final code = _dspF32Fn!(ptr, samples.length, volume, noiseGateThreshold);
+      if (code == 0) {
+        return Float32List.fromList(list);
+      }
+    } catch (_) {
+      return null;
+    } finally {
+      malloc.free(ptr);
     }
     return null;
   }
