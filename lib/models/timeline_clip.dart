@@ -70,6 +70,7 @@ class TimelineClip {
   final AudioEqPreset eqPreset;
   final VoiceChangerPreset voiceChanger;
   final List<double> waveformSamples;
+  final List<int> beatMarkers;
   final PanZoomTransform panZoom;
   final PipPreset pipPreset;
   final InAnimationType inAnimation;
@@ -139,6 +140,7 @@ class TimelineClip {
     this.eqPreset = AudioEqPreset.normal,
     this.voiceChanger = VoiceChangerPreset.none,
     this.waveformSamples = const [],
+    this.beatMarkers = const [],
     this.panZoom = const PanZoomTransform(),
     this.pipPreset = PipPreset.none,
     this.inAnimation = InAnimationType.none,
@@ -325,6 +327,7 @@ class TimelineClip {
     AudioEqPreset? eqPreset,
     VoiceChangerPreset? voiceChanger,
     List<double>? waveformSamples,
+    List<int>? beatMarkers,
     PanZoomTransform? panZoom,
     PipPreset? pipPreset,
     InAnimationType? inAnimation,
@@ -395,6 +398,7 @@ class TimelineClip {
       eqPreset: eqPreset ?? this.eqPreset,
       voiceChanger: voiceChanger ?? this.voiceChanger,
       waveformSamples: waveformSamples ?? this.waveformSamples,
+      beatMarkers: beatMarkers ?? this.beatMarkers,
       panZoom: panZoom ?? this.panZoom,
       pipPreset: pipPreset ?? this.pipPreset,
       inAnimation: inAnimation ?? this.inAnimation,
@@ -469,6 +473,7 @@ class TimelineClip {
     'eqPreset': eqPreset.name,
     'voiceChanger': voiceChanger.name,
     'waveformSamples': waveformSamples,
+    'beatMarkers': beatMarkers,
     'panZoom': panZoom.toJson(),
     'pipPreset': pipPreset.name,
     'inAnimation': inAnimation.name,
@@ -575,6 +580,10 @@ class TimelineClip {
       ),
       waveformSamples: (json['waveformSamples'] as List<dynamic>?)
               ?.map((w) => (w as num).toDouble())
+              .toList() ??
+          const [],
+      beatMarkers: (json['beatMarkers'] as List<dynamic>?)
+              ?.map((b) => (b as num).toInt())
               .toList() ??
           const [],
       panZoom: json['panZoom'] != null

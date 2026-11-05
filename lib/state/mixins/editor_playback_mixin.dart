@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import '../../models/timeline_clip.dart';
 import '../../services/audio_playback_service.dart';
 import '../editor_controller_base.dart';
 
@@ -29,9 +30,24 @@ mixin EditorPlaybackMixin on EditorControllerBase {
     );
   }
 
-  void seekTo(int ms) {
+  void seekTo(int ms, {bool snapToBeat = true}) {
+    int targetMs = ms;
+    if (snapToBeat) {
+      for (final clip in project.clips) {
+        if (clip.type == ClipType.audio && clip.beatMarkers.isNotEmpty) {
+          for (final b in clip.beatMarkers) {
+            final absoluteBeatMs = clip.startMs + b;
+            if ((ms - absoluteBeatMs).abs() <= 90) {
+              targetMs = absoluteBeatMs;
+              break;
+            }
+          }
+        }
+      }
+    }
+
     final total = max(1000, project.totalDurationMs);
-    playheadMs = ms.clamp(0, total);
+    playheadMs = targetMs.clamp(0, total);
     syncAudio();
     notifyListeners();
   }

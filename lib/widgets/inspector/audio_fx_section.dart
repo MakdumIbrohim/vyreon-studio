@@ -212,6 +212,97 @@ class AudioFxSection extends StatelessWidget {
               }).toList(),
             ),
           ),
+
+          const Divider(height: 18, color: AppTheme.divider),
+
+          // Audio Beat Detection & Markers Section
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Rhythm & Beat Markers',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${clip.beatMarkers.length} Beats',
+                  style: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'monospace',
+                    color: Colors.amberAccent,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => controller.detectBeatsForClip(clip.id),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.surfaceVariant,
+                    foregroundColor: Colors.amberAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      side: const BorderSide(color: Colors.amberAccent, width: 0.8),
+                    ),
+                  ),
+                  icon: const Icon(Icons.graphic_eq, size: 16),
+                  label: const Text(
+                    'Auto-Detect Beats',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: AppTheme.surfaceVariant,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                tooltip: 'Add/Remove Beat Marker at Playhead',
+                icon: const Icon(Icons.pin_drop, size: 16, color: Colors.white),
+                onPressed: () => controller.toggleBeatMarkerAtPlayhead(clip.id),
+              ),
+              if (clip.beatMarkers.isNotEmpty) ...[
+                const SizedBox(width: 4),
+                IconButton(
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppTheme.surfaceVariant,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                  ),
+                  tooltip: 'Clear All Beat Markers',
+                  icon: const Icon(Icons.delete_sweep,
+                      size: 16, color: Colors.redAccent),
+                  onPressed: () =>
+                      controller.updateClip(clip.copyWith(beatMarkers: [])),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Timeline playhead snaps automatically to rhythm beat markers during scrubbing.',
+            style: TextStyle(fontSize: 9, color: AppTheme.textMuted),
+          ),
         ],
       ),
     );

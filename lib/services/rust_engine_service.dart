@@ -20,6 +20,23 @@ typedef _WaveformDart = int Function(
   ffi.Pointer<ffi.Float> outPtr,
 );
 
+typedef _BeatPeaksC = ffi.Int32 Function(
+  ffi.Pointer<ffi.Float> peaksPtr,
+  ffi.Size peaksLen,
+  ffi.Uint32 durationMs,
+  ffi.Float thresholdMultiplier,
+  ffi.Pointer<ffi.Uint32> outMsPtr,
+  ffi.Size maxBeats,
+);
+typedef _BeatPeaksDart = int Function(
+  ffi.Pointer<ffi.Float> peaksPtr,
+  int peaksLen,
+  int durationMs,
+  double thresholdMultiplier,
+  ffi.Pointer<ffi.Uint32> outMsPtr,
+  int maxBeats,
+);
+
 typedef _LerpTransformC = ffi.Void Function(
   ffi.Float t,
   ffi.Float startScale,
@@ -76,6 +93,7 @@ class RustEngineService {
   ffi.DynamicLibrary? _lib;
   _VersionDart? _versionFn;
   _WaveformDart? _waveformFn;
+  _BeatPeaksDart? _beatFn;
   _LerpTransformDart? _lerpFn;
   _ChromaDart? _chromaFn;
 
@@ -106,6 +124,8 @@ class RustEngineService {
             .lookupFunction<_VersionC, _VersionDart>('vyreon_rust_version');
         _waveformFn = _lib!.lookupFunction<_WaveformC, _WaveformDart>(
             'vyreon_extract_waveform_peaks');
+        _beatFn = _lib!.lookupFunction<_BeatPeaksC, _BeatPeaksDart>(
+            'vyreon_detect_beat_peaks');
         _lerpFn = _lib!.lookupFunction<_LerpTransformC, _LerpTransformDart>(
             'vyreon_lerp_transform');
         _chromaFn = _lib!.lookupFunction<_ChromaC, _ChromaDart>(
@@ -149,6 +169,67 @@ class RustEngineService {
       malloc.free(outPtr);
     }
     return null;
+  }
+
+  /// High-performance rhythmic beat transient peak detection accelerated by Rust
+  List<int> detectBeatPeaks({
+    required List<double> peaks,
+    required int durationMs,
+    double thresholdMultiplier = 1.25,
+    int maxBeats = 120,
+  }) {
+    if (peaks.length < 4 || durationMs <= 0 || maxBeats <= 0) return const [];
+
+    if (_beatFn != null) {
+      final peaksPtr = malloc<ffi.Float>(peaks.length);
+      final outPtr = malloc<ffi.Uint32>(maxBeats);
+
+      try {
+        final floatList = peaksPtr.asTypedList(peaks.length);
+        floatList.setAll(0, peaks);
+
+        final count = _beatFn!(
+          peaksPtr,
+          peaks.length,
+          durationMs,
+          thresholdMultiplier,
+          outPtr,
+          maxBeats,
+        );
+
+        if (count > 0) {
+          final outList = outPtr.asTypedList(count);
+          return List<int>.from(outList);
+        }
+      } catch (_) {
+        // Fallback to Dart VM
+      } finally {
+        malloc.free(peaksPtr);
+        malloc.free(outPtr);
+      }
+    }
+
+    // Dart fallback
+    final sum = peaks.reduce((a, b) => a + b);
+    final mean = sum / peaks.length;
+    final threshold = mean * thresholdMultiplier.clamp(1.05, 2.5);
+
+    final beats = <int>[];
+    final minDistance = (peaks.length / 40).clamp(2, 20).toInt();
+    int lastBeatIdx = -100;
+
+    for (int i = 1; i < peaks.length - 1; i++) {
+      if (beats.length >= maxBeats) break;
+      final curr = peaks[i];
+      if (curr > threshold && curr >= peaks[i - 1] && curr >= peaks[i + 1]) {
+        if (i - lastBeatIdx >= minDistance) {
+          final timeMs = ((i / peaks.length) * durationMs).round();
+          beats.add(timeMs);
+          lastBeatIdx = i;
+        }
+      }
+    }
+    return beats;
   }
 
   /// Rust-accelerated lerp transform

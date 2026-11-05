@@ -3,6 +3,7 @@ import '../../models/subtitle_entry.dart';
 import '../../models/timeline_clip.dart';
 import '../../services/audio_extraction_service.dart';
 import '../../services/audio_waveform_service.dart';
+import '../../services/rust_engine_service.dart';
 import '../../services/srt_service.dart';
 import '../../services/video_reverse_service.dart';
 import '../editor_controller_base.dart';
@@ -512,5 +513,42 @@ mixin EditorClipOpsMixin on EditorControllerBase {
     );
     notifyListeners();
     autoSave();
+  }
+
+  void detectBeatsForClip(String clipId, {double thresholdMultiplier = 1.25}) {
+    final clipIndex = project.clips.indexWhere((c) => c.id == clipId);
+    if (clipIndex < 0) return;
+    final clip = project.clips[clipIndex];
+    if (clip.waveformSamples.isEmpty) return;
+
+    pushUndo();
+    final beats = RustEngineService.instance.detectBeatPeaks(
+      peaks: clip.waveformSamples,
+      durationMs: clip.durationMs,
+      thresholdMultiplier: thresholdMultiplier,
+    );
+
+    final updated = clip.copyWith(beatMarkers: beats);
+    updateClip(updated);
+  }
+
+  void toggleBeatMarkerAtPlayhead(String clipId) {
+    final clipIndex = project.clips.indexWhere((c) => c.id == clipId);
+    if (clipIndex < 0) return;
+    final clip = project.clips[clipIndex];
+    if (playheadMs < clip.startMs || playheadMs > clip.endMs) return;
+
+    pushUndo();
+    final relMs = playheadMs - clip.startMs;
+    final markers = List<int>.from(clip.beatMarkers);
+    final existingIdx = markers.indexWhere((b) => (b - relMs).abs() <= 100);
+
+    if (existingIdx >= 0) {
+      markers.removeAt(existingIdx);
+    } else {
+      markers.add(relMs);
+      markers.sort();
+    }
+    updateClip(clip.copyWith(beatMarkers: markers));
   }
 }

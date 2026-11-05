@@ -426,6 +426,35 @@ Second subtitle line''';
     controller.cancelEyedropper();
     expect(controller.isEyedropperActive, false);
 
+    // Audio Beat Detection & Snap-to-Beat test
+    controller.seekTo(0, snapToBeat: false);
+    final testBeatsAudio = TimelineClip(
+      id: 'test_beats_audio',
+      name: 'Rhythm Song',
+      type: ClipType.audio,
+      startMs: 0,
+      durationMs: 8000,
+      sourceDurationMs: 8000,
+      waveformSamples: [0.1, 0.2, 0.95, 0.3, 0.1, 0.9, 0.2, 0.1],
+    );
+    controller.addSecondaryClip(testBeatsAudio);
+
+    controller.detectBeatsForClip(testBeatsAudio.id);
+    final clipWithBeats = controller.project.clips.firstWhere((c) => c.id == testBeatsAudio.id);
+    expect(clipWithBeats.beatMarkers.isNotEmpty, true);
+
+    final firstBeat = clipWithBeats.beatMarkers.first;
+    // Scrub within snap threshold (40ms away from first beat)
+    controller.seekTo(firstBeat + 40, snapToBeat: true);
+    expect(controller.playheadMs, firstBeat); // Snapped!
+
+    // Toggle manual beat marker at playhead
+    final previousBeatCount = clipWithBeats.beatMarkers.length;
+    controller.seekTo(4500, snapToBeat: false);
+    controller.toggleBeatMarkerAtPlayhead(testBeatsAudio.id);
+    final clipAfterToggle = controller.project.clips.firstWhere((c) => c.id == testBeatsAudio.id);
+    expect(clipAfterToggle.beatMarkers.length, previousBeatCount + 1);
+
     controller.dispose();
   });
 }

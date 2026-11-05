@@ -56,6 +56,57 @@ pub extern "C" fn vyreon_extract_waveform_peaks(
     0
 }
 
+/// Audio Beat / Transient Peak Detection in Rust
+/// Analyzes waveform peak samples and detects rhythmic pulse beats (spectral flux / energy transients).
+/// Writes detected beat timestamps in milliseconds into out_ms buffer (up to max_beats).
+/// Returns the actual count of beats detected.
+#[unsafe(no_mangle)]
+pub extern "C" fn vyreon_detect_beat_peaks(
+    peaks_ptr: *const f32,
+    peaks_len: usize,
+    duration_ms: u32,
+    threshold_multiplier: f32,
+    out_ms_ptr: *mut u32,
+    max_beats: usize,
+) -> i32 {
+    if peaks_ptr.is_null() || out_ms_ptr.is_null() || peaks_len < 4 || duration_ms == 0 || max_beats == 0 {
+        return 0;
+    }
+
+    let peaks = unsafe { slice::from_raw_parts(peaks_ptr, peaks_len) };
+    let out_ms = unsafe { slice::from_raw_parts_mut(out_ms_ptr, max_beats) };
+
+    let sum: f32 = peaks.iter().sum();
+    let mean = sum / (peaks.len() as f32);
+    let mult = threshold_multiplier.clamp(1.05, 2.5);
+    let threshold = mean * mult;
+
+    let mut beat_count = 0;
+    let min_distance_samples = (peaks_len / 40).max(2);
+    let mut last_beat_idx: isize = -100;
+
+    for i in 1..(peaks.len() - 1) {
+        if beat_count >= max_beats {
+            break;
+        }
+
+        let curr = peaks[i];
+        let prev = peaks[i - 1];
+        let next = peaks[i + 1];
+
+        if curr > threshold && curr >= prev && curr >= next {
+            if (i as isize - last_beat_idx) >= (min_distance_samples as isize) {
+                let time_ms = ((i as f64 / peaks.len() as f64) * duration_ms as f64).round() as u32;
+                out_ms[beat_count] = time_ms;
+                beat_count += 1;
+                last_beat_idx = i as isize;
+            }
+        }
+    }
+
+    beat_count as i32
+}
+
 /// Fast Keyframe & Ken Burns Transform Interpolation (SIMD-friendly lerp)
 #[unsafe(no_mangle)]
 pub extern "C" fn vyreon_lerp_transform(
@@ -140,12 +191,26 @@ mod tests {
 
     #[test]
     fn test_chroma() {
-        // Pure green key matching pure green pixel
         let a = vyreon_chroma_key_alpha(0, 255, 0, 0, 255, 0, 0.35, 0.1);
         assert_eq!(a, 0);
 
-        // Pure red pixel against green key
         let a_red = vyreon_chroma_key_alpha(255, 0, 0, 0, 255, 0, 0.35, 0.1);
         assert_eq!(a_red, 255);
+    }
+
+    #[test]
+    fn test_beat_peaks() {
+        let sample_peaks = vec![0.1, 0.2, 0.9, 0.3, 0.1, 0.85, 0.2, 0.1];
+        let mut out_beats = vec![0u32; 8];
+        let count = vyreon_detect_beat_peaks(
+            sample_peaks.as_ptr(),
+            sample_peaks.len(),
+            8000,
+            1.2,
+            out_beats.as_mut_ptr(),
+            out_beats.len(),
+        );
+        assert!(count >= 1);
+        assert!(out_beats[0] > 0);
     }
 }

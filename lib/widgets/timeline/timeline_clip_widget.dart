@@ -102,6 +102,28 @@ class TimelineClipWidget extends StatelessWidget {
                   ),
                 ),
 
+              // Beat Markers (Amber Rhythmic Pin Dots)
+              for (final beatMs in clip.beatMarkers)
+                Positioned(
+                  left: (_msToPx(beatMs, scale) - 3).clamp(0.0, width - 6),
+                  top: 2,
+                  child: Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: Colors.amberAccent,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.black, width: 0.8),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black54,
+                          blurRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
               // Clip Content Info
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
