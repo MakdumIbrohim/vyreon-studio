@@ -17,6 +17,7 @@ import 'package:vyreon_studio/services/rust_engine_service.dart';
 import 'package:vyreon_studio/services/srt_service.dart';
 import 'package:vyreon_studio/services/video_thumbnail_service.dart';
 import 'package:vyreon_studio/state/editor_controller.dart';
+import 'package:vyreon_studio/widgets/timeline/timeline_clip_widget.dart';
 import 'package:vyreon_studio/widgets/timeline/timeline_playhead_widget.dart';
 
 void main() {
@@ -79,6 +80,11 @@ void main() {
     final playheadFinder = find.byType(TimelinePlayheadWidget);
     expect(playheadFinder, findsOneWidget);
     await tester.drag(playheadFinder, const Offset(60, 0));
+    await tester.pump();
+
+    // Verify tapping clip selects and moves playhead to clip end
+    final clipFinder = find.byType(TimelineClipWidget).first;
+    await tester.tap(clipFinder);
     await tester.pump();
 
     addTearDown(tester.view.resetPhysicalSize);

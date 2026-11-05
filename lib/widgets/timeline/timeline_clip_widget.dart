@@ -118,7 +118,10 @@ class _TimelineClipWidgetState extends State<TimelineClipWidget> {
       width: width,
       height: widget.height,
       child: GestureDetector(
-        onTap: () => controller.selectClip(clip.id),
+        onTap: () {
+          controller.selectClip(clip.id);
+          controller.seekTo(clip.endMs, snapToBeat: false);
+        },
         child: Container(
           decoration: BoxDecoration(
             color: widget.isAudio
