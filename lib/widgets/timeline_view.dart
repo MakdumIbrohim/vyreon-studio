@@ -4,8 +4,11 @@ import '../models/timeline_clip.dart';
 import '../state/editor_controller.dart';
 import '../theme/app_theme.dart';
 import 'time_ruler.dart';
-import 'timeline/timeline_clip_widget.dart';
 import 'timeline/timeline_painters.dart';
+import 'timeline/timeline_zoom_toolbar.dart';
+import 'timeline/tracks/audio_track_view.dart';
+import 'timeline/tracks/primary_track_view.dart';
+import 'timeline/tracks/secondary_track_view.dart';
 import 'timeline/transition_selector_dialog.dart';
 
 class TimelineView extends StatefulWidget {
@@ -37,7 +40,6 @@ class _TimelineViewState extends State<TimelineView> {
   void _onControllerUpdate() {
     if (!mounted) return;
     if (widget.controller.isPlaying && !_isUserScrolling) {
-      // Auto-scroll timeline to follow playhead
       final scale = widget.controller.timelineScale;
       final playheadPx = (widget.controller.playheadMs / 1000.0) * scale;
       final viewWidth = _scrollController.position.hasContentDimensions
@@ -104,62 +106,7 @@ class _TimelineViewState extends State<TimelineView> {
           child: Column(
             children: [
               // Zoom & Timecode Toolbar
-              Container(
-                height: 32,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                color: AppTheme.surface,
-                child: Row(
-                  children: [
-                    const Icon(Icons.timeline,
-                        size: 16, color: AppTheme.textMuted),
-                    const SizedBox(width: 6),
-                    const Text(
-                      'TIMELINE',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textMuted,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                    const Spacer(),
-                    // Zoom Out
-                    InkWell(
-                      onTap: () =>
-                          controller.setTimelineScale(scale - 15.0),
-                      borderRadius: BorderRadius.circular(4),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.zoom_out,
-                            size: 18, color: AppTheme.textSecondary),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    // Zoom Slider
-                    SizedBox(
-                      width: 90,
-                      child: Slider(
-                        value: scale,
-                        min: 20.0,
-                        max: 180.0,
-                        onChanged: (val) => controller.setTimelineScale(val),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    // Zoom In
-                    InkWell(
-                      onTap: () =>
-                          controller.setTimelineScale(scale + 15.0),
-                      borderRadius: BorderRadius.circular(4),
-                      child: const Padding(
-                        padding: EdgeInsets.all(4),
-                        child: Icon(Icons.zoom_in,
-                            size: 18, color: AppTheme.textSecondary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              TimelineZoomToolbar(controller: controller, scale: scale),
 
               const Divider(height: 1, color: AppTheme.divider),
 
@@ -208,44 +155,49 @@ class _TimelineViewState extends State<TimelineView> {
                                       height: 1, color: AppTheme.divider),
 
                                   // Track 0: Primary Video Track
-                                  _buildPrimaryTrack(
+                                  PrimaryTrackView(
                                     clips: primaryClips,
                                     scale: scale,
                                     totalWidth: totalWidth,
+                                    controller: controller,
+                                    onEditTransition: _editTransition,
                                   ),
 
                                   const Divider(
                                       height: 1, color: AppTheme.divider),
 
                                   // Track 1: Layers Track
-                                  _buildSecondaryTrack(
+                                  SecondaryTrackView(
                                     clips: videoLayers,
                                     scale: scale,
                                     totalWidth: totalWidth,
                                     trackLabel: 'LAYERS',
                                     trackHeight: 38,
+                                    controller: controller,
                                   ),
 
                                   const Divider(
                                       height: 1, color: AppTheme.divider),
 
                                   // Track 2: Text Track
-                                  _buildSecondaryTrack(
+                                  SecondaryTrackView(
                                     clips: textLayers,
                                     scale: scale,
                                     totalWidth: totalWidth,
                                     trackLabel: 'TEXT',
                                     trackHeight: 34,
+                                    controller: controller,
                                   ),
 
                                   const Divider(
                                       height: 1, color: AppTheme.divider),
 
                                   // Track 3: Audio Track
-                                  _buildAudioTrack(
+                                  AudioTrackView(
                                     clips: audioLayers,
                                     scale: scale,
                                     totalWidth: totalWidth,
+                                    controller: controller,
                                   ),
                                 ],
                               ),
@@ -287,148 +239,6 @@ class _TimelineViewState extends State<TimelineView> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildPrimaryTrack({
-    required List<TimelineClip> clips,
-    required double scale,
-    required double totalWidth,
-  }) {
-    return Container(
-      height: 58,
-      width: totalWidth,
-      color: AppTheme.timelineTrack,
-      child: Stack(
-        children: [
-          Positioned(
-            left: 8,
-            top: 2,
-            child: Text(
-              'PRIMARY MEDIA TRACK',
-              style: TextStyle(
-                fontSize: 9,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textMuted.withValues(alpha: 0.3),
-              ),
-            ),
-          ),
-          for (int i = 0; i < clips.length; i++) ...[
-            TimelineClipWidget(
-              clip: clips[i],
-              scale: scale,
-              height: 52,
-              controller: widget.controller,
-            ),
-            if (i < clips.length - 1)
-              Positioned(
-                left: _msToPx(clips[i].endMs, scale) - 9,
-                top: 17,
-                child: GestureDetector(
-                  onTap: () => _editTransition(clips[i + 1]),
-                  child: Container(
-                    width: 18,
-                    height: 18,
-                    decoration: BoxDecoration(
-                      color: clips[i + 1].transition != TransitionType.none
-                          ? AppTheme.primary
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(4),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.5),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      clips[i + 1].transition != TransitionType.none
-                          ? clips[i + 1].transition.icon
-                          : Icons.change_circle,
-                      size: 13,
-                      color: clips[i + 1].transition != TransitionType.none
-                          ? Colors.white
-                          : const Color(0xFF1E293B),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSecondaryTrack({
-    required List<TimelineClip> clips,
-    required double scale,
-    required double totalWidth,
-    required String trackLabel,
-    required double trackHeight,
-  }) {
-    return Container(
-      height: trackHeight,
-      width: totalWidth,
-      color: AppTheme.timelineTrack.withValues(alpha: 0.8),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 8,
-            top: 2,
-            child: Text(
-              trackLabel,
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textMuted.withValues(alpha: 0.25),
-              ),
-            ),
-          ),
-          for (final clip in clips)
-            TimelineClipWidget(
-              clip: clip,
-              scale: scale,
-              height: trackHeight - 6,
-              controller: widget.controller,
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAudioTrack({
-    required List<TimelineClip> clips,
-    required double scale,
-    required double totalWidth,
-  }) {
-    return Container(
-      height: 38,
-      width: totalWidth,
-      color: AppTheme.timelineTrack.withValues(alpha: 0.6),
-      child: Stack(
-        children: [
-          Positioned(
-            left: 8,
-            top: 2,
-            child: Text(
-              'AUDIO TRACK',
-              style: TextStyle(
-                fontSize: 8,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textMuted.withValues(alpha: 0.25),
-              ),
-            ),
-          ),
-          for (final clip in clips)
-            TimelineClipWidget(
-              clip: clip,
-              scale: scale,
-              height: 32,
-              isAudio: true,
-              controller: widget.controller,
-            ),
-        ],
-      ),
     );
   }
 }
