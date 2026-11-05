@@ -486,6 +486,41 @@ Second subtitle line''';
     expect(renderGraph.videoMap.isNotEmpty, true);
     expect(renderGraph.audioMap.isNotEmpty, true);
 
+    // Test Transition & Animation Export in FFmpeg Graph
+    final projectWithTransitions = controller.project.copyWith(
+      clips: [
+        controller.project.primaryClips.first,
+        controller.project.primaryClips[1].copyWith(
+          transition: TransitionType.fade,
+          transitionDurationMs: 1000,
+        ),
+        const TimelineClip(
+          id: 'anim_layer',
+          name: 'Layer Anim',
+          type: ClipType.color,
+          isPrimary: false,
+          startMs: 1000,
+          durationMs: 3000,
+          sourceDurationMs: 3000,
+          inAnimation: InAnimationType.fadeIn,
+          inDurationMs: 800,
+          outAnimation: OutAnimationType.fadeOut,
+          outDurationMs: 800,
+        ),
+        ...controller.project.secondaryClips,
+      ],
+    );
+
+    final transitionRenderGraph = FfmpegGraphBuilder.buildGraph(
+      project: projectWithTransitions,
+      width: 1920,
+      height: 1080,
+      fps: 30,
+    );
+    expect(transitionRenderGraph.filterComplex.contains('xfade=transition=fade'), true);
+    expect(transitionRenderGraph.filterComplex.contains('fade=t=in:st=0:d='), true);
+    expect(transitionRenderGraph.filterComplex.contains('fade=t=out:st='), true);
+
     // Audio Recording Service test
     expect(AudioRecordingService.instance.isRecording, false);
     final hasPerm = await AudioRecordingService.instance.hasPermission();
