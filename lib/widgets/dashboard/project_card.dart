@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import '../../models/clip_types.dart';
 import '../../models/project.dart';
+import '../../services/video_thumbnail_service.dart';
 import '../../theme/app_theme.dart';
 
 class ProjectCard extends StatelessWidget {
@@ -29,10 +32,6 @@ class ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final firstClip = project.clips.isNotEmpty ? project.clips.first : null;
-    final thumbColor =
-        firstClip != null ? firstClip.color : AppTheme.surfaceVariant;
-
     return InkWell(
       onTap: onOpen,
       borderRadius: BorderRadius.circular(10),
@@ -46,65 +45,75 @@ class ProjectCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Thumbnail Area
+            // Thumbnail Area with actual asset / media preview
             Expanded(
               flex: 5,
-              child: Container(
-                color: thumbColor,
-                child: Stack(
-                  children: [
-                    Center(
-                      child: Icon(
-                        project.aspectRatio.icon,
-                        size: 32,
-                        color: Colors.white.withValues(alpha: 0.6),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _buildThumbnail(project),
+
+                  // Subtle gradient overlay for badge readability
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withValues(alpha: 0.45),
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.65),
+                        ],
+                        stops: const [0.0, 0.45, 1.0],
                       ),
                     ),
-                    // Aspect ratio tag
-                    Positioned(
-                      top: 6,
-                      left: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          project.aspectRatio.label,
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                  ),
+
+                  // Aspect ratio tag
+                  Positioned(
+                    top: 6,
+                    left: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                    ),
-                    // Duration badge
-                    Positioned(
-                      bottom: 6,
-                      right: 6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          _formatDuration(project.totalDurationMs),
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontFamily: 'monospace',
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                      child: Text(
+                        project.aspectRatio.label,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+
+                  // Duration badge
+                  Positioned(
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        _formatDuration(project.totalDurationMs),
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontFamily: 'monospace',
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -212,6 +221,97 @@ class ProjectCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(Project project) {
+    final firstVisualClip = project.primaryClips.isNotEmpty
+        ? project.primaryClips.first
+        : (project.clips.where((c) => c.type != ClipType.audio).firstOrNull);
+
+    if (firstVisualClip != null) {
+      if (firstVisualClip.type == ClipType.image &&
+          firstVisualClip.assetPath != null) {
+        final file = File(firstVisualClip.assetPath!);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: double.infinity,
+            errorBuilder: (_, _, _) => _buildFallback(project),
+          );
+        }
+      } else if (firstVisualClip.type == ClipType.video &&
+          firstVisualClip.assetPath != null) {
+        final file = File(firstVisualClip.assetPath!);
+        if (file.existsSync()) {
+          return FutureBuilder<File?>(
+            future: VideoThumbnailService().getThumbnailFile(
+              firstVisualClip.assetPath!,
+              atMs: firstVisualClip.sourceInMs,
+            ),
+            builder: (context, snapshot) {
+              if (snapshot.hasData &&
+                  snapshot.data != null &&
+                  snapshot.data!.existsSync()) {
+                return Image.file(
+                  snapshot.data!,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                  height: double.infinity,
+                  errorBuilder: (_, _, _) => _buildFallback(project),
+                );
+              }
+              return _buildFallback(project);
+            },
+          );
+        }
+      } else if (firstVisualClip.type == ClipType.color) {
+        return Container(
+          color: Color(firstVisualClip.colorValue),
+          child: Center(
+            child: Icon(
+              Icons.palette_outlined,
+              size: 28,
+              color: Colors.white.withValues(alpha: 0.5),
+            ),
+          ),
+        );
+      } else if (firstVisualClip.type == ClipType.text) {
+        return Container(
+          color: AppTheme.timelineTextClip,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Center(
+            child: Text(
+              firstVisualClip.textContent,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        );
+      }
+    }
+
+    return _buildFallback(project);
+  }
+
+  Widget _buildFallback(Project project) {
+    return Container(
+      color: AppTheme.surfaceVariant,
+      child: Center(
+        child: Icon(
+          project.aspectRatio.icon,
+          size: 32,
+          color: Colors.white.withValues(alpha: 0.5),
         ),
       ),
     );
