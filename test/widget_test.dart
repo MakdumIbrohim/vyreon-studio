@@ -292,6 +292,25 @@ void main() {
     final path = maskedClip.cropMask.getClipPath(const Size(100, 100));
     expect(path.getBounds().width, closeTo(80, 0.5));
 
+    // Extract Audio from video clip test
+    final testVideoClip = TimelineClip(
+      id: 'test_vid_extract',
+      name: 'Sample Vid',
+      type: ClipType.video,
+      startMs: 0,
+      durationMs: 5000,
+      sourceDurationMs: 5000,
+      isPrimary: true,
+    );
+    controller.addPrimaryClip(testVideoClip);
+    final extractedAudio = await controller.extractAudioFromClip(testVideoClip.id);
+    expect(extractedAudio, isNotNull);
+    expect(extractedAudio!.type, ClipType.audio);
+    final actualVideo = controller.project.clips.firstWhere((c) => c.id == testVideoClip.id);
+    expect(extractedAudio.startMs, actualVideo.startMs);
+    expect(extractedAudio.durationMs, actualVideo.durationMs);
+    expect(actualVideo.isMuted, true);
+
     controller.dispose();
   });
 }

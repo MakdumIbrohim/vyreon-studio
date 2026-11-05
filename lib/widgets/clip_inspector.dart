@@ -462,6 +462,28 @@ class _ClipInspectorState extends State<ClipInspector> {
                         onTap: () => controller.duplicateAsLayer(clip.id),
                       ),
                     ),
+                    if (clip.type == ClipType.video) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildActionButton(
+                          icon: Icons.music_note,
+                          label: 'Extract Audio',
+                          onTap: () async {
+                            final audio =
+                                await controller.extractAudioFromClip(clip.id);
+                            if (context.mounted && audio != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Audio extracted to timeline track!'),
+                                  backgroundColor: AppTheme.surfaceVariant,
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 20),

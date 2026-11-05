@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../models/project.dart';
 import '../models/timeline_clip.dart';
+import '../services/audio_extraction_service.dart';
 import '../services/audio_playback_service.dart';
 import '../services/audio_waveform_service.dart';
 import '../services/project_storage_service.dart';
@@ -509,6 +510,73 @@ class EditorController extends ChangeNotifier {
     _selectedClipId = copy.id;
     notifyListeners();
     _autoSave();
+  }
+
+  Future<TimelineClip?> extractAudioFromClip(String clipId) async {
+    final clipIndex = _project.clips.indexWhere((c) => c.id == clipId);
+    if (clipIndex < 0) return null;
+    final videoClip = _project.clips[clipIndex];
+
+    _pushUndo();
+    final now = DateTime.now().millisecondsSinceEpoch;
+
+    // 1. Mute original video clip
+    final updatedVideo = videoClip.copyWith(isMuted: true);
+    final updatedClips = List<TimelineClip>.from(_project.clips);
+    updatedClips[clipIndex] = updatedVideo;
+
+    // 2. Extract audio stream
+    String? audioPath;
+    if (videoClip.assetPath != null) {
+      audioPath = await AudioExtractionService().extractAudio(
+        videoPath: videoClip.assetPath!,
+        clipId: videoClip.id,
+      );
+    }
+
+    // 3. Create decoupled Audio Clip
+    final audioClip = TimelineClip(
+      id: 'extracted_audio_${now}_${videoClip.id}',
+      name: '${videoClip.name} (Audio)',
+      type: ClipType.audio,
+      startMs: videoClip.startMs,
+      durationMs: videoClip.durationMs,
+      sourceInMs: videoClip.sourceInMs,
+      sourceDurationMs: videoClip.sourceDurationMs,
+      assetPath: audioPath ?? videoClip.assetPath,
+      colorValue: 0xFF00E5FF,
+      volume: videoClip.volume,
+      isPrimary: false,
+      trackIndex: 3,
+    );
+
+    _project = _project.copyWith(
+      clips: [...updatedClips, audioClip],
+      modifiedAt: DateTime.now(),
+    );
+    _selectedClipId = audioClip.id;
+    notifyListeners();
+    _autoSave();
+
+    // 4. Generate waveforms in background
+    AudioWaveformService()
+        .getWaveformSamples(
+      filePath: audioClip.assetPath,
+      clipId: audioClip.id,
+      durationMs: audioClip.durationMs,
+    )
+        .then((samples) {
+      final idx = _project.clips.indexWhere((c) => c.id == audioClip.id);
+      if (idx >= 0) {
+        final withWave = _project.clips[idx].copyWith(waveformSamples: samples);
+        final list = List<TimelineClip>.from(_project.clips);
+        list[idx] = withWave;
+        _project = _project.copyWith(clips: list);
+        notifyListeners();
+      }
+    });
+
+    return audioClip;
   }
 
   void bringToFront(String clipId) {
