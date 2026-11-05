@@ -4,6 +4,8 @@ import '../services/project_storage_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/responsive.dart';
 import '../widgets/dashboard/create_project_banner.dart';
+import '../widgets/dashboard/dashboard_search_bar.dart';
+import '../widgets/dashboard/project_action_dialogs.dart';
 import '../widgets/dashboard/project_card.dart';
 import 'create_project_dialog.dart';
 import 'editor_screen.dart';
@@ -68,27 +70,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _deleteProject(Project project) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Delete Project?'),
-        content: Text('Are you sure you want to delete "${project.name}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    final confirmed = await ProjectActionDialogs.showDeleteConfirmation(
+      context,
+      project,
     );
-
     if (confirmed == true) {
       await ProjectStorageService.instance.deleteProject(project.id);
       _loadProjects();
@@ -96,36 +81,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _renameProject(Project project) async {
-    final controller = TextEditingController(text: project.name);
-    final newName = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.surface,
-        title: const Text('Rename Project'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            labelText: 'New Name',
-            labelStyle: TextStyle(color: AppTheme.textSecondary),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppTheme.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primary),
-            child: const Text('Rename', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+    final newName = await ProjectActionDialogs.showRename(
+      context,
+      project,
     );
-
     if (newName != null && newName.isNotEmpty && newName != project.name) {
       final updated = project.copyWith(
         name: newName,
@@ -207,55 +166,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                   // Search bar & Project count header
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                      child: Row(
-                        children: [
-                          Text(
-                            'MY PROJECTS (${filtered.length})',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textMuted,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(maxWidth: 180),
-                                child: SizedBox(
-                                  height: 34,
-                                  child: TextField(
-                                    style: const TextStyle(
-                                        fontSize: 12, color: Colors.white),
-                                    decoration: InputDecoration(
-                                      hintText: 'Search...',
-                                      hintStyle: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.textMuted),
-                                      prefixIcon: const Icon(Icons.search,
-                                          size: 16, color: AppTheme.textMuted),
-                                      filled: true,
-                                      fillColor: AppTheme.surfaceVariant,
-                                      contentPadding: EdgeInsets.zero,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(8),
-                                        borderSide: BorderSide.none,
-                                      ),
-                                    ),
-                                    onChanged: (val) =>
-                                        setState(() => _searchQuery = val),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    child: DashboardSearchBar(
+                      projectCount: filtered.length,
+                      onSearchChanged: (val) =>
+                          setState(() => _searchQuery = val),
                     ),
                   ),
 
