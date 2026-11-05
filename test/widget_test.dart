@@ -369,11 +369,13 @@ Second subtitle line''';
       isMasterMuted: true,
       audioFadeInDuration: 2.0,
       audioFadeOutDuration: 3.0,
+      customExportDirectory: '/home/user/CustomVideos',
     ));
     expect(controller.project.settings.masterVolume, 1.5);
     expect(controller.project.settings.isMasterMuted, true);
     expect(controller.project.settings.audioFadeInDuration, 2.0);
     expect(controller.project.settings.audioFadeOutDuration, 3.0);
+    expect(controller.project.settings.customExportDirectory, '/home/user/CustomVideos');
 
     // Advanced Typography & Text Box styling test
     final styledTextClip = textClip.copyWith(

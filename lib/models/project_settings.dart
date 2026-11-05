@@ -6,6 +6,7 @@ class ProjectSettings {
   final bool autoMasterVolume;
   final double masterVolume; // 0.0 to 2.0 (0% - 200%), default 1.0
   final bool isMasterMuted;
+  final String? customExportDirectory; // User custom output directory path
 
   const ProjectSettings({
     this.defaultPhotoDuration = 4.5,
@@ -15,6 +16,7 @@ class ProjectSettings {
     this.autoMasterVolume = true,
     this.masterVolume = 1.0,
     this.isMasterMuted = false,
+    this.customExportDirectory,
   });
 
   ProjectSettings copyWith({
@@ -25,6 +27,8 @@ class ProjectSettings {
     bool? autoMasterVolume,
     double? masterVolume,
     bool? isMasterMuted,
+    String? customExportDirectory,
+    bool clearCustomExportDirectory = false,
   }) {
     return ProjectSettings(
       defaultPhotoDuration: defaultPhotoDuration ?? this.defaultPhotoDuration,
@@ -35,6 +39,9 @@ class ProjectSettings {
       autoMasterVolume: autoMasterVolume ?? this.autoMasterVolume,
       masterVolume: masterVolume ?? this.masterVolume,
       isMasterMuted: isMasterMuted ?? this.isMasterMuted,
+      customExportDirectory: clearCustomExportDirectory
+          ? null
+          : (customExportDirectory ?? this.customExportDirectory),
     );
   }
 
@@ -46,6 +53,7 @@ class ProjectSettings {
         'autoMasterVolume': autoMasterVolume,
         'masterVolume': masterVolume,
         'isMasterMuted': isMasterMuted,
+        'customExportDirectory': customExportDirectory,
       };
 
   factory ProjectSettings.fromJson(Map<String, dynamic> json) {
@@ -61,6 +69,7 @@ class ProjectSettings {
       autoMasterVolume: json['autoMasterVolume'] as bool? ?? true,
       masterVolume: (json['masterVolume'] as num?)?.toDouble() ?? 1.0,
       isMasterMuted: json['isMasterMuted'] as bool? ?? false,
+      customExportDirectory: json['customExportDirectory'] as String?,
     );
   }
 }

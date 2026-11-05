@@ -62,8 +62,17 @@ class VideoRenderService {
     final ffmpegReady = await isFfmpegAvailable();
 
     // Determine output directory
-    final home = Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '/tmp';
-    final outputDir = Directory('$home/Videos/VyreonStudio');
+    Directory outputDir;
+    if (project.settings.customExportDirectory != null &&
+        project.settings.customExportDirectory!.trim().isNotEmpty) {
+      outputDir = Directory(project.settings.customExportDirectory!.trim());
+    } else {
+      final home = Platform.environment['HOME'] ??
+          Platform.environment['USERPROFILE'] ??
+          '/tmp';
+      outputDir = Directory('$home/Videos/VyreonStudio');
+    }
+
     if (!outputDir.existsSync()) {
       try {
         outputDir.createSync(recursive: true);
