@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/rust_engine_service.dart';
 import 'audio_presets.dart';
 import 'clip_types.dart';
 import 'keyframe.dart';
@@ -262,12 +263,28 @@ class TimelineClip {
       final k2 = sorted[i + 1];
       if (relMs >= k1.timeMs && relMs <= k2.timeMs) {
         final span = k2.timeMs - k1.timeMs;
-        final t = span > 0 ? (relMs - k1.timeMs) / span : 0.0;
+        final rawT = span > 0 ? (relMs - k1.timeMs) / span : 0.0;
+        final t = RustEngineService.instance.evaluateBezier(rawT);
+
+        final rustLerp = RustEngineService.instance.lerpTransform(
+          t: t,
+          startScale: k1.scale,
+          endScale: k2.scale,
+          startX: k1.offsetX,
+          endX: k2.offsetX,
+          startY: k1.offsetY,
+          endY: k2.offsetY,
+        );
+
+        final sc = rustLerp?.scale ?? (k1.scale + (k2.scale - k1.scale) * t);
+        final ox = rustLerp?.offsetX ?? (k1.offsetX + (k2.offsetX - k1.offsetX) * t);
+        final oy = rustLerp?.offsetY ?? (k1.offsetY + (k2.offsetY - k1.offsetY) * t);
+
         return InterpolatedTransform(
-          scale: k1.scale + (k2.scale - k1.scale) * t,
+          scale: sc,
           rotation: k1.rotation + (k2.rotation - k1.rotation) * t,
-          offsetX: k1.offsetX + (k2.offsetX - k1.offsetX) * t,
-          offsetY: k1.offsetY + (k2.offsetY - k1.offsetY) * t,
+          offsetX: ox,
+          offsetY: oy,
           opacity: k1.opacity + (k2.opacity - k1.opacity) * t,
         );
       }
