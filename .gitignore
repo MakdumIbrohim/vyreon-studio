@@ -49,3 +49,9 @@ app.*.map.json
 
 # Local release build artifacts
 /release-artifacts/
+
+# Rust build artifacts
+target/
+**/target/
+native/rust_engine/target/
+
