@@ -545,6 +545,14 @@ Second subtitle line''';
       expect(blended![0], 200);
       expect(blended[1], 50);
       expect(blended[2], 10);
+
+      // Fast Native SRT Subtitle Parser Test
+      const sampleSrt = '1\n00:00:01,000 --> 00:00:03,500\nHello Subtitle!\n';
+      final parsedSubs = SrtService.parseSrt(sampleSrt);
+      expect(parsedSubs.isNotEmpty, true);
+      expect(parsedSubs.first.text, 'Hello Subtitle!');
+      expect(parsedSubs.first.startMs, 1000);
+      expect(parsedSubs.first.endMs, 3500);
     }
 
     controller.dispose();

@@ -2,11 +2,13 @@ pub mod color_grading;
 pub mod audio_dsp;
 pub mod bezier;
 pub mod blending;
+pub mod srt_parser;
 
 pub use color_grading::*;
 pub use audio_dsp::*;
 pub use bezier::*;
 pub use blending::*;
+pub use srt_parser::*;
 
 use std::os::raw::c_char;
 use std::slice;

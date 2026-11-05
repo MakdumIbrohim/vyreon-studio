@@ -203,6 +203,13 @@ typedef BlendLayersDart = int Function(
   double opacity,
 );
 
+// SRT Parser
+typedef ParseSrtC = ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8> srtPtr);
+typedef ParseSrtDart = ffi.Pointer<Utf8> Function(ffi.Pointer<Utf8> srtPtr);
+
+typedef FreeStringC = ffi.Void Function(ffi.Pointer<Utf8> ptr);
+typedef FreeStringDart = void Function(ffi.Pointer<Utf8> ptr);
+
 class RustFfiBindings {
   static ffi.DynamicLibrary? loadLibrary() {
     try {

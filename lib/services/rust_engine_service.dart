@@ -13,6 +13,8 @@ class RustEngineService with RustAudioOps, RustVisualOps {
 
   ffi.DynamicLibrary? _lib;
   VersionDart? _versionFn;
+  ParseSrtDart? _parseSrtFn;
+  FreeStringDart? _freeStringFn;
 
   @override
   WaveformDart? waveformFn;
@@ -55,6 +57,8 @@ class RustEngineService with RustAudioOps, RustVisualOps {
         bezierFn = _lib!.lookupFunction<BezierEvalC, BezierEvalDart>('vyreon_bezier_eval');
         bezierBatchFn = _lib!.lookupFunction<BezierBatchC, BezierBatchDart>('vyreon_speed_curve_eval_batch');
         blendLayersFn = _lib!.lookupFunction<BlendLayersC, BlendLayersDart>('vyreon_blend_layers_rgba');
+        _parseSrtFn = _lib!.lookupFunction<ParseSrtC, ParseSrtDart>('vyreon_parse_srt_to_json');
+        _freeStringFn = _lib!.lookupFunction<FreeStringC, FreeStringDart>('vyreon_free_string');
       } catch (_) {
         // Partial load fallback
       }
@@ -68,6 +72,25 @@ class RustEngineService with RustAudioOps, RustVisualOps {
       return ptr.toDartString();
     } catch (_) {
       return 'Dart VM Fallback Engine';
+    }
+  }
+
+  /// Fast native SRT Subtitle Parser in Rust
+  String? parseSrtToJson(String srtContent) {
+    if (_parseSrtFn == null) return null;
+    final cStr = srtContent.toNativeUtf8();
+    try {
+      final resPtr = _parseSrtFn!(cStr);
+      if (resPtr == ffi.nullptr) return null;
+      try {
+        return resPtr.toDartString();
+      } finally {
+        _freeStringFn?.call(resPtr);
+      }
+    } catch (_) {
+      return null;
+    } finally {
+      malloc.free(cStr);
     }
   }
 }
