@@ -118,6 +118,41 @@ void main() {
     final clipWithWaveform = audioClip.copyWith(waveformSamples: waveformSamples);
     expect(clipWithWaveform.waveformSamples.isNotEmpty, true);
 
+    // Pan & Zoom (Ken Burns) test
+    final pzClip = clip.copyWith(
+      panZoom: const PanZoomTransform(
+        isEnabled: true,
+        startScale: 1.0,
+        endScale: 1.5,
+        startOffsetX: 0.0,
+        endOffsetX: 0.4,
+      ),
+    );
+    expect(pzClip.panZoom.isEnabled, true);
+    final midTransform = pzClip.panZoom.lerpAt(0.5);
+    expect(midTransform.scale, closeTo(1.25, 0.01));
+    expect(midTransform.offsetX, closeTo(0.2, 0.01));
+
+    // Picture-in-Picture (PiP) Split Screen test
+    controller.applyPipPreset(textClip.id, PipPreset.splitLeft);
+    final pipClip = controller.project.clips.firstWhere((c) => c.id == textClip.id);
+    expect(pipClip.pipPreset, PipPreset.splitLeft);
+    expect(pipClip.scale, 0.5);
+    expect(pipClip.offsetX, -0.5);
+
+    // Multi-layer Drag & Drop / Reordering test
+    final initialSecondaries = controller.project.secondaryClips;
+    expect(initialSecondaries.length, greaterThanOrEqualTo(2));
+    final firstSecondaryId = initialSecondaries.first.id;
+    controller.bringToFront(firstSecondaryId);
+    expect(controller.project.secondaryClips.last.id, firstSecondaryId);
+
+    controller.sendToBack(firstSecondaryId);
+    expect(controller.project.secondaryClips.first.id, firstSecondaryId);
+
+    controller.reorderSecondaryClips(0, 2);
+    expect(controller.project.secondaryClips[1].id, firstSecondaryId);
+
     controller.dispose();
   });
 }

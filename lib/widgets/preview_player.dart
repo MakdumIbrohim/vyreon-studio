@@ -242,6 +242,20 @@ class PreviewPlayer extends StatelessWidget {
       content = ColorFiltered(colorFilter: filter, child: content);
     }
 
+    if (clip.panZoom.isEnabled && clip.durationMs > 0) {
+      final progress =
+          ((controller.playheadMs - clip.startMs) / clip.durationMs)
+              .clamp(0.0, 1.0);
+      final pz = clip.panZoom.lerpAt(progress);
+      content = Transform.translate(
+        offset: Offset(pz.offsetX * 80, pz.offsetY * 80),
+        child: Transform.scale(
+          scale: pz.scale,
+          child: content,
+        ),
+      );
+    }
+
     if (clip.isVignetteEnabled) {
       content = Stack(
         fit: StackFit.expand,

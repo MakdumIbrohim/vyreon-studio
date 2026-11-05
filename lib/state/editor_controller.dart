@@ -417,6 +417,63 @@ class EditorController extends ChangeNotifier {
     _autoSave();
   }
 
+  void bringToFront(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    if (clip.isPrimary) return;
+    _pushUndo();
+    final nonSelected = _project.clips.where((c) => c.id != clipId).toList();
+    _project = _project.copyWith(
+      clips: [...nonSelected, clip],
+      modifiedAt: DateTime.now(),
+    );
+    notifyListeners();
+    _autoSave();
+  }
+
+  void sendToBack(String clipId) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    if (clip.isPrimary) return;
+    _pushUndo();
+    final primaries = _project.primaryClips;
+    final otherSecondaries = _project.secondaryClips.where((c) => c.id != clipId).toList();
+    _project = _project.copyWith(
+      clips: [...primaries, clip, ...otherSecondaries],
+      modifiedAt: DateTime.now(),
+    );
+    notifyListeners();
+    _autoSave();
+  }
+
+  void reorderSecondaryClips(int oldIndex, int newIndex) {
+    final secondaries = List<TimelineClip>.from(_project.secondaryClips);
+    if (oldIndex < 0 || oldIndex >= secondaries.length) return;
+    if (newIndex > secondaries.length) newIndex = secondaries.length;
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    _pushUndo();
+    final item = secondaries.removeAt(oldIndex);
+    secondaries.insert(newIndex, item);
+    _project = _project.copyWith(
+      clips: [..._project.primaryClips, ...secondaries],
+      modifiedAt: DateTime.now(),
+    );
+    notifyListeners();
+    _autoSave();
+  }
+
+  void applyPipPreset(String clipId, PipPreset preset) {
+    final clip = _project.clips.firstWhere((c) => c.id == clipId);
+    _pushUndo();
+    final updated = clip.copyWith(
+      pipPreset: preset,
+      scale: preset == PipPreset.none ? clip.scale : preset.defaultScale,
+      offsetX: preset == PipPreset.none ? clip.offsetX : preset.defaultOffsetX,
+      offsetY: preset == PipPreset.none ? clip.offsetY : preset.defaultOffsetY,
+    );
+    updateClip(updated);
+  }
+
   void updateSettings(dynamic newSettings) {
     _pushUndo();
     _project = _project.copyWith(

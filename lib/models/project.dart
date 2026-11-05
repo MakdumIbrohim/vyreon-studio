@@ -36,8 +36,7 @@ class Project {
         ..sort((a, b) => a.startMs.compareTo(b.startMs));
 
   List<TimelineClip> get secondaryClips =>
-      clips.where((c) => !c.isPrimary).toList()
-        ..sort((a, b) => a.startMs.compareTo(b.startMs));
+      clips.where((c) => !c.isPrimary).toList();
 
   Project copyWith({
     String? id,

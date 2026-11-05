@@ -2,12 +2,16 @@ import 'package:flutter/material.dart';
 import 'audio_presets.dart';
 import 'clip_types.dart';
 import 'keyframe.dart';
+import 'pan_zoom.dart';
+import 'pip_presets.dart';
 import 'speed_point.dart';
 import 'transition_type.dart';
 
 export 'audio_presets.dart';
 export 'clip_types.dart';
 export 'keyframe.dart';
+export 'pan_zoom.dart';
+export 'pip_presets.dart';
 export 'speed_point.dart';
 export 'transition_type.dart';
 
@@ -60,6 +64,8 @@ class TimelineClip {
   final AudioEqPreset eqPreset;
   final VoiceChangerPreset voiceChanger;
   final List<double> waveformSamples;
+  final PanZoomTransform panZoom;
+  final PipPreset pipPreset;
 
   const TimelineClip({
     required this.id,
@@ -110,6 +116,8 @@ class TimelineClip {
     this.eqPreset = AudioEqPreset.normal,
     this.voiceChanger = VoiceChangerPreset.none,
     this.waveformSamples = const [],
+    this.panZoom = const PanZoomTransform(),
+    this.pipPreset = PipPreset.none,
   });
 
   int get endMs => startMs + durationMs;
@@ -248,6 +256,8 @@ class TimelineClip {
     AudioEqPreset? eqPreset,
     VoiceChangerPreset? voiceChanger,
     List<double>? waveformSamples,
+    PanZoomTransform? panZoom,
+    PipPreset? pipPreset,
   }) {
     return TimelineClip(
       id: id ?? this.id,
@@ -299,6 +309,8 @@ class TimelineClip {
       eqPreset: eqPreset ?? this.eqPreset,
       voiceChanger: voiceChanger ?? this.voiceChanger,
       waveformSamples: waveformSamples ?? this.waveformSamples,
+      panZoom: panZoom ?? this.panZoom,
+      pipPreset: pipPreset ?? this.pipPreset,
     );
   }
 
@@ -351,6 +363,8 @@ class TimelineClip {
     'eqPreset': eqPreset.name,
     'voiceChanger': voiceChanger.name,
     'waveformSamples': waveformSamples,
+    'panZoom': panZoom.toJson(),
+    'pipPreset': pipPreset.name,
   };
 
   factory TimelineClip.fromJson(Map<String, dynamic> json) {
@@ -440,6 +454,13 @@ class TimelineClip {
               ?.map((w) => (w as num).toDouble())
               .toList() ??
           const [],
+      panZoom: json['panZoom'] != null
+          ? PanZoomTransform.fromJson(json['panZoom'] as Map<String, dynamic>)
+          : const PanZoomTransform(),
+      pipPreset: PipPreset.values.firstWhere(
+        (e) => e.name == json['pipPreset'],
+        orElse: () => PipPreset.none,
+      ),
     );
   }
 }

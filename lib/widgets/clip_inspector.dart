@@ -6,6 +6,9 @@ import 'inspector/audio_fx_section.dart';
 import 'inspector/chroma_key_section.dart';
 import 'inspector/inspector_slider.dart';
 import 'inspector/keyframe_section.dart';
+import 'inspector/layer_order_section.dart';
+import 'inspector/pan_zoom_section.dart';
+import 'inspector/pip_section.dart';
 import 'inspector/speed_ramp_section.dart';
 import 'inspector/text_style_section.dart';
 import 'inspector/trim_split_toolbar.dart';
@@ -408,6 +411,23 @@ class _ClipInspectorState extends State<ClipInspector> {
                 if (clip.type == ClipType.audio || clip.type == ClipType.video) ...[
                   _buildSectionHeader('EQ & VOICE CHANGER'),
                   AudioFxSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
+                ],
+
+                // Pan & Zoom (Ken Burns)
+                if (clip.type != ClipType.audio) ...[
+                  _buildSectionHeader('PAN & ZOOM'),
+                  PanZoomSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
+                ],
+
+                // Picture-in-Picture & Split Screen Presets
+                if (!clip.isPrimary && clip.type != ClipType.audio) ...[
+                  _buildSectionHeader('SPLIT SCREEN / PIP'),
+                  PipSection(controller: controller, clip: clip),
+                  const SizedBox(height: 14),
+                  _buildSectionHeader('LAYER ORDER (Z-INDEX)'),
+                  LayerOrderSection(controller: controller, clip: clip),
                   const SizedBox(height: 14),
                 ],
 
