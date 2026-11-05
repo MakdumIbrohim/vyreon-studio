@@ -13,30 +13,41 @@ echo "========================================="
 echo "  Vyreon Studio Release Automator: $TAG"
 echo "========================================="
 
-# 1. Build Rust Native Engine
-echo "[1/5] Building native Rust engine..."
-(cd native/rust_engine && cargo build --release)
-
-# 2. Build Split per-ABI APKs
-echo "[2/5] Building Split per-ABI APKs..."
-flutter build apk --release --split-per-abi
-
-# 3. Build Universal APK
-echo "[3/5] Building Universal APK..."
-flutter build apk --release
-
-# 4. Copy and Rename Artifacts
-echo "[4/5] Packaging release APKs with architecture naming..."
 mkdir -p "$ARTIFACTS_DIR"
-cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "$ARTIFACTS_DIR/vyreon-studio-arm64-v8a-$TAG.apk"
-cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "$ARTIFACTS_DIR/vyreon-studio-armeabi-v7a-$TAG.apk"
-cp build/app/outputs/flutter-apk/app-x86_64-release.apk "$ARTIFACTS_DIR/vyreon-studio-x86_64-$TAG.apk"
-cp build/app/outputs/flutter-apk/app-release.apk "$ARTIFACTS_DIR/vyreon-studio-universal-$TAG.apk"
+
+NEED_BUILD=false
+if [ ! -f "$ARTIFACTS_DIR/vyreon-studio-arm64-v8a-$TAG.apk" ] || \
+   [ ! -f "$ARTIFACTS_DIR/vyreon-studio-armeabi-v7a-$TAG.apk" ] || \
+   [ ! -f "$ARTIFACTS_DIR/vyreon-studio-x86_64-$TAG.apk" ] || \
+   [ ! -f "$ARTIFACTS_DIR/vyreon-studio-universal-$TAG.apk" ] || \
+   [ "$1" == "--rebuild" ]; then
+    NEED_BUILD=true
+fi
+
+if [ "$NEED_BUILD" = true ]; then
+    echo "[1/4] Building native Rust engine..."
+    (cd native/rust_engine && cargo build --release)
+
+    echo "[2/4] Building Split per-ABI APKs..."
+    flutter build apk --release --split-per-abi
+
+    echo "[3/4] Building Universal APK..."
+    flutter build apk --release
+
+    echo "[4/4] Packaging release APKs..."
+    cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk "$ARTIFACTS_DIR/vyreon-studio-arm64-v8a-$TAG.apk"
+    cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk "$ARTIFACTS_DIR/vyreon-studio-armeabi-v7a-$TAG.apk"
+    cp build/app/outputs/flutter-apk/app-x86_64-release.apk "$ARTIFACTS_DIR/vyreon-studio-x86_64-$TAG.apk"
+    cp build/app/outputs/flutter-apk/app-release.apk "$ARTIFACTS_DIR/vyreon-studio-universal-$TAG.apk"
+else
+    echo "Using existing built release APKs in $ARTIFACTS_DIR:"
+fi
 
 ls -lh "$ARTIFACTS_DIR"/vyreon-studio-*.apk
 
-# 5. Check GitHub CLI Authentication and Publish
-echo "[5/5] Checking GitHub CLI auth..."
+# Check GitHub CLI Authentication and Publish
+echo ""
+echo "Checking GitHub authentication status..."
 if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
     echo "Publishing release $TAG to GitHub..."
     gh release create "$TAG" "$ARTIFACTS_DIR"/vyreon-studio-*.apk \
@@ -45,9 +56,8 @@ if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
     echo "Successfully published $TAG to GitHub Releases!"
 else
     echo "------------------------------------------------------------"
-    echo "GitHub CLI not authenticated yet."
-    echo "To upload automatically, run: gh auth login"
-    echo "Then re-run this script, or upload manually from:"
-    echo "  $ARTIFACTS_DIR/"
+    echo "GitHub CLI not logged in yet."
+    echo "To log in, run: gh auth login"
+    echo "After logging in, rerun: ./scripts/publish_release.sh"
     echo "------------------------------------------------------------"
 fi
