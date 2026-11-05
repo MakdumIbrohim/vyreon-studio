@@ -521,6 +521,16 @@ Second subtitle line''';
       );
       expect(processedAudio, isNotNull);
       expect(processedAudio!.length, 3);
+
+      // Rust Engine Bézier Speed Curve Test
+      final bezierVal = RustEngineService.instance.evaluateBezier(0.5);
+      expect(bezierVal >= 0.0 && bezierVal <= 1.0, true);
+
+      final speedCurve = RustEngineService.instance.evaluateSpeedCurveBatch(
+        Float32List.fromList([0.0, 0.5, 1.0]),
+      );
+      expect(speedCurve, isNotNull);
+      expect(speedCurve!.length, 3);
     }
 
     controller.dispose();

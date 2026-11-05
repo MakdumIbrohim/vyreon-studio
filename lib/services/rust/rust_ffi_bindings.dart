@@ -152,6 +152,41 @@ typedef AudioDspF32Dart = int Function(
   double noiseGateThreshold,
 );
 
+// Bézier Easing & Speed Curve
+typedef BezierEvalC = ffi.Float Function(
+  ffi.Float x,
+  ffi.Float x1,
+  ffi.Float y1,
+  ffi.Float x2,
+  ffi.Float y2,
+);
+typedef BezierEvalDart = double Function(
+  double x,
+  double x1,
+  double y1,
+  double x2,
+  double y2,
+);
+
+typedef BezierBatchC = ffi.Int32 Function(
+  ffi.Pointer<ffi.Float> inTimesPtr,
+  ffi.Pointer<ffi.Float> outValuesPtr,
+  ffi.Size count,
+  ffi.Float x1,
+  ffi.Float y1,
+  ffi.Float x2,
+  ffi.Float y2,
+);
+typedef BezierBatchDart = int Function(
+  ffi.Pointer<ffi.Float> inTimesPtr,
+  ffi.Pointer<ffi.Float> outValuesPtr,
+  int count,
+  double x1,
+  double y1,
+  double x2,
+  double y2,
+);
+
 class RustFfiBindings {
   static ffi.DynamicLibrary? loadLibrary() {
     try {
